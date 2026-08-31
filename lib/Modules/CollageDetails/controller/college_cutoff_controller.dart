@@ -90,12 +90,27 @@ class CollegeCutoffController extends GetxController {
 
   bool get needsAir => userAir.value <= 0;
 
+  bool _isCourseRecordUG(CollegeCategoryCutoffRecord record) {
+    if (_profileController.isCourseUG(record.courseId)) return true;
+    
+    final name = record.courseName.trim().toUpperCase();
+    if (['MBBS', 'BDS', 'BAMS', 'BHMS', 'BUMS', 'BSMS'].contains(name)) {
+      return true;
+    }
+    
+    for (final c in _profileController.ugCourseList) {
+      if (c.name.trim().toUpperCase() == name) return true;
+    }
+    
+    return false;
+  }
+
   List<MapEntry<int, String>> get courseOptions {
     final map = <int, String>{};
     final isUGUser = _profileController.isUGUser;
     
     for (final record in cutoffData.value?.categoryCutoffs ?? const <CollegeCategoryCutoffRecord>[]) {
-      final isCourseUG = _profileController.isCourseUG(record.courseId);
+      final isCourseUG = _isCourseRecordUG(record);
       if (isUGUser == isCourseUG) {
         map[record.courseId] = record.courseName;
       }
@@ -360,7 +375,7 @@ class CollegeCutoffController extends GetxController {
         const <CollegeCategoryCutoffRecord>[];
 
     final isUGUser = _profileController.isUGUser;
-    records = records.where((r) => _profileController.isCourseUG(r.courseId) == isUGUser).toList();
+    records = records.where((r) => _isCourseRecordUG(r) == isUGUser).toList();
 
     if (selectedCourseId.value != null) {
       records = records

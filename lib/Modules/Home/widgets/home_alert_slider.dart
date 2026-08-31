@@ -1,5 +1,5 @@
 import 'package:Gixa/Modules/notification/controller/notification_controller.dart';
-import 'package:Gixa/Modules/notification/veiw/notification_page.dart';
+import 'package:Gixa/Modules/notification/veiw/alerts_page.dart';
 import 'package:Gixa/common/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -121,7 +121,7 @@ class _HomeAlertSliderState extends State<HomeAlertSlider> {
                   onPressed: () {
                     AuthGuard.checkAccess(
                       onAllowed: () {
-                        Get.to(() => NotificationPage());
+                        Get.to(() => const AlertsPage());
                       },
                     );
                   },

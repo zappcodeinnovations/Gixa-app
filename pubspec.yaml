@@ -2,10 +2,10 @@ name: Gixa
 description: "A new Flutter project."
 
 publish_to: "none"
-version: 1.0.0+18
+version: 1.0.0+20
 
 environment:
-  sdk: ^3.9.2
+  sdk: ^3.9.0
 
 dependencies:
   flutter:

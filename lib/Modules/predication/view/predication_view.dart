@@ -4,9 +4,12 @@ import 'package:Gixa/Modules/Profile/controllers/profile_controller.dart';
 import 'package:Gixa/Modules/predication/view/ai_prediction_result_view.dart';
 import 'package:Gixa/Modules/predication/view/chat_bot_prediction_view.dart';
 import 'package:Gixa/Modules/predication/widgets/ai_activation_dialog.dart';
+import 'package:Gixa/Modules/subscription/controller/subscription_controller.dart';
+import 'package:Gixa/common/widgets/app_snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shake/shake.dart';
+import 'package:Gixa/Modules/subscription/widgets/course_selection_bottom_sheet.dart';
 import '../controller/prediction_controller.dart';
 
 class PredictionView extends StatefulWidget {
@@ -761,39 +764,83 @@ class _PredictionViewState extends State<PredictionView>
       Obx(() {
         final profileController = Get.find<ProfileController>();
         final p = profileController.profile.value;
-        final predCourses = p?.predictionCourses ?? [];
-        final hasPredCourses = predCourses.isNotEmpty;
+        final profileCourse = p?.course?.trim() ?? '';
+        
+        final predictionCourses = p?.predictionCourses ?? [];
+        
+        final subCtrl = Get.isRegistered<SubscriptionController>()
+            ? Get.find<SubscriptionController>()
+            : Get.put(SubscriptionController());
+        final purchasedCourses = subCtrl.purchasedCourseNames;
+        
+        final Set<String> combinedCourses = {};
+        if (predictionCourses.isNotEmpty) {
+          combinedCourses.addAll(predictionCourses);
+        } else if (profileCourse.isNotEmpty) {
+          combinedCourses.add(profileCourse);
+        }
+        
+        combinedCourses.addAll(purchasedCourses);
 
         final List<String> dropdownItems = [
           'Select Course',
-          ...(hasPredCourses
-              ? predCourses
+          ...(combinedCourses.isNotEmpty
+              ? combinedCourses
               : controller.currentAvailableCourses.map((e) => e.name)),
         ];
 
-        return _aiDropdown(
-          label: "course".tr,
-          icon: Icons.school_outlined,
-          value: controller.selectedCourse.value,
-          items: dropdownItems,
-          errorText: controller.courseError.value.isNotEmpty
-              ? controller.courseError.value
-              : null,
-          enabled: true, // Allow user to select course
-          suffixIcon: null,
-          onChanged: (v) {
-            if (v == null) return;
-            if (v == 'Select Course') {
-              controller.selectedCourse.value = 'Select Course';
-            } else {
-              controller.selectedCourse.value = v;
-              controller.courseError.value = '';
-              // Reset specialty when course changes
-              controller.selectedSpecialty.value = 'Select Specialty';
-            }
-            print('State wise course for pg: State: ${controller.selectedState.value}, Course: ${controller.selectedCourse.value}');
-          },
-          isDark: isDark,
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            _aiDropdown(
+              label: "course".tr,
+              icon: Icons.school_outlined,
+              value: controller.selectedCourse.value,
+              items: dropdownItems,
+              errorText: controller.courseError.value.isNotEmpty
+                  ? controller.courseError.value
+                  : null,
+              enabled: true, // Allow user to select course
+              suffixIcon: null,
+              onChanged: (v) {
+                if (v == null) return;
+                if (v == 'Select Course') {
+                  controller.selectedCourse.value = 'Select Course';
+                } else {
+                  controller.selectedCourse.value = v;
+                  controller.courseError.value = '';
+                  // Reset specialty when course changes
+                  controller.selectedSpecialty.value = 'Select Specialty';
+                }
+                print('State wise course for pg: State: ${controller.selectedState.value}, Course: ${controller.selectedCourse.value}');
+              },
+              isDark: isDark,
+            ),
+            TextButton.icon(
+              onPressed: () {
+                final activePlan = subCtrl.activePlan.value;
+                if (activePlan == null) {
+                  AppSnackbar.show('No Active Plan', 'Please purchase a base plan first to add courses.');
+                  return;
+                }
+                CourseSelectionBottomSheet.show(context, activePlan, isAddonOnly: true);
+              },
+              icon: const Icon(Icons.add_circle_outline, size: 14, color: _indigo),
+              label: const Text(
+                'Add Course',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: _indigo,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+            ),
+          ],
         );
       }),
       Obx(() {
@@ -912,13 +959,16 @@ class _PredictionViewState extends State<PredictionView>
 
         /// Institute Type
         Obx(
-          () => _pillRow(
-            items: ["Govt", "Pvt", "Both"],
-            values: ["Govt", "Pvt", "Both"],
-            selected: controller.selectedInstituteType.value,
-            onTap: (v) => controller.selectedInstituteType.value = v,
-            isDark: isDark,
-          ),
+          () {
+            final isMcc = controller.effectiveState.toUpperCase() == 'MCC';
+            return _pillRow(
+              items: ["Govt", isMcc ? "Deemed" : "Pvt", "Both"],
+              values: ["Govt", "Pvt", "Both"],
+              selected: controller.selectedInstituteType.value,
+              onTap: (v) => controller.selectedInstituteType.value = v,
+              isDark: isDark,
+            );
+          }
         ),
 
         const SizedBox(height: 14),

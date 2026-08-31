@@ -28,9 +28,9 @@ class CompareHistoryView extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: isDark ? _C.dark : _C.lightBg,
-      appBar: _buildAppBar(isDark),
+      appBar: _buildAppBar(isDark, controller),
       body: Obx(() {
-        if (controller.isLoading.value) {
+        if (controller.isLoading.value && controller.historyList.isEmpty) {
           return const Center(
             child: CircularProgressIndicator(
               color: _C.orange,
@@ -49,19 +49,29 @@ class CompareHistoryView extends StatelessWidget {
           separatorBuilder: (_, __) => const SizedBox(height: 14),
           itemBuilder: (context, index) {
             final item = controller.historyList[index];
-            return _HistoryCard(
-              item: item,
-              isDark: isDark,
-              onTap: () =>
-                  Get.toNamed(AppRoutes.compareCollage, arguments: item),
-            );
+            return Obx(() {
+              final isSelected = controller.selectedIds.contains(item.id);
+              return _HistoryCard(
+                item: item,
+                isDark: isDark,
+                isSelected: isSelected,
+                isSelectionMode: controller.isSelectionMode.value,
+                onTap: () {
+                  if (controller.isSelectionMode.value) {
+                    controller.toggleSelection(item.id);
+                  } else {
+                    Get.toNamed(AppRoutes.compareCollage, arguments: item);
+                  }
+                },
+              );
+            });
           },
         );
       }),
     );
   }
 
-  PreferredSizeWidget _buildAppBar(bool isDark) {
+  PreferredSizeWidget _buildAppBar(bool isDark, CompareHistoryController controller) {
     final textColor = isDark ? Colors.white : _C.textPrimary;
     return AppBar(
       backgroundColor: isDark ? _C.dark : _C.lightBg,
@@ -69,7 +79,13 @@ class CompareHistoryView extends StatelessWidget {
       centerTitle: true,
       automaticallyImplyLeading: false,
       leading: GestureDetector(
-        onTap: () => Get.back(),
+        onTap: () {
+          if (controller.isSelectionMode.value) {
+            controller.toggleSelectionMode();
+          } else {
+            Get.back();
+          }
+        },
         child: Container(
           margin: const EdgeInsets.all(10),
           decoration: BoxDecoration(
@@ -85,18 +101,79 @@ class CompareHistoryView extends StatelessWidget {
                     ),
                   ],
           ),
-          child: Icon(Icons.arrow_back_ios_new_rounded,
-              size: 16, color: textColor),
+          child: Icon(
+            controller.isSelectionMode.value
+                ? Icons.close_rounded
+                : Icons.arrow_back_ios_new_rounded,
+            size: 16,
+            color: textColor,
+          ),
         ),
       ),
-      title: Text(
-        "History",
-        style: TextStyle(
-          color: textColor,
-          fontWeight: FontWeight.w800,
-          fontSize: 17,
-          letterSpacing: -0.3,
-        ),
+      title: Obx(() => Text(
+            controller.isSelectionMode.value
+                ? "${controller.selectedIds.length} Selected"
+                : "History",
+            style: TextStyle(
+              color: textColor,
+              fontWeight: FontWeight.w800,
+              fontSize: 17,
+              letterSpacing: -0.3,
+            ),
+          )),
+      actions: [
+        Obx(() {
+          if (controller.historyList.isEmpty) return const SizedBox();
+          return Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: IconButton(
+              onPressed: () {
+                if (controller.isSelectionMode.value) {
+                  if (controller.selectedIds.isNotEmpty) {
+                    _showDeleteConfirmation(controller);
+                  } else {
+                    controller.toggleSelectionMode();
+                  }
+                } else {
+                  controller.toggleSelectionMode();
+                }
+              },
+              icon: Icon(
+                controller.isSelectionMode.value
+                    ? Icons.delete_forever_rounded
+                    : Icons.delete_outline_rounded,
+                color: controller.isSelectionMode.value &&
+                        controller.selectedIds.isEmpty
+                    ? textColor.withOpacity(0.5)
+                    : _C.orange,
+              ),
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
+  void _showDeleteConfirmation(CompareHistoryController controller) {
+    Get.dialog(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text("Delete History"),
+        content: Text(
+            "Are you sure you want to delete ${controller.selectedIds.length} items?"),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+          ),
+          TextButton(
+            onPressed: () {
+              Get.back();
+              controller.deleteSelected();
+            },
+            child: const Text("Delete", style: TextStyle(color: Colors.red)),
+          ),
+        ],
       ),
     );
   }
@@ -107,112 +184,116 @@ class _HistoryCard extends StatelessWidget {
   final dynamic item;
   final bool isDark;
   final VoidCallback onTap;
+  final bool isSelected;
+  final bool isSelectionMode;
 
   const _HistoryCard({
     required this.item,
     required this.isDark,
     required this.onTap,
+    this.isSelected = false,
+    this.isSelectionMode = false,
   });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
         decoration: BoxDecoration(
           color: isDark ? _C.darkCard : _C.lightCard,
           borderRadius: BorderRadius.circular(20),
+          border: isSelected
+              ? Border.all(color: _C.orange, width: 2)
+              : Border.all(color: Colors.transparent, width: 2),
           boxShadow: isDark
               ? []
               : [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: isSelected
+                        ? _C.orange.withOpacity(0.15)
+                        : Colors.black.withOpacity(0.05),
                     blurRadius: 16,
                     offset: const Offset(0, 4),
                   ),
                 ],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Stack(
           children: [
-            // ── Top accent strip + date row ──
-            Container(
-              padding: const EdgeInsets.fromLTRB(18, 14, 18, 14),
-              decoration: BoxDecoration(
-                color: _C.orange.withOpacity(isDark ? 0.12 : 0.06),
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(20)),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ── Top accent strip + date row ──
+                Container(
+                  padding: const EdgeInsets.fromLTRB(18, 14, 18, 14),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? _C.orange.withOpacity(0.2)
+                        : _C.orange.withOpacity(isDark ? 0.12 : 0.06),
+                    borderRadius:
+                        const BorderRadius.vertical(top: Radius.circular(18)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Icon(Icons.history_rounded,
-                          size: 15, color: _C.orange),
-                      const SizedBox(width: 7),
-                      Text(
-                        item.createdDate ?? "—",
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: isDark ? Colors.white60 : _C.textSecondary,
-                        ),
+                      Row(
+                        children: [
+                          Icon(
+                            isSelectionMode
+                                ? (isSelected
+                                    ? Icons.check_circle_rounded
+                                    : Icons.radio_button_unchecked_rounded)
+                                : Icons.history_rounded,
+                            size: 16,
+                            color: isSelected ? _C.orange : _C.orange,
+                          ),
+                          const SizedBox(width: 7),
+                          Text(
+                            item.createdDate ?? "—",
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: isSelected
+                                  ? _C.orange
+                                  : (isDark ? Colors.white60 : _C.textSecondary),
+                            ),
+                          ),
+                        ],
                       ),
+                      _CountBadge(count: item.totalColleges),
                     ],
                   ),
-                  _CountBadge(count: item.totalColleges),
-                ],
-              ),
-            ),
+                ),
 
-            // ── College rows ──
-            Padding(
-              padding: const EdgeInsets.fromLTRB(18, 14, 18, 0),
-              child: Column(
-                children: [
-                  ...(item.colleges as List)
-                      .take(3)
-                      .map((college) => _CollegeRow(
-                            college: college,
-                            isDark: isDark,
-                          )),
-                  if ((item.colleges as List).length > 3)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4, left: 48),
-                      child: Text(
-                        "+ ${(item.colleges as List).length - 3} more",
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: _C.orange,
+                // ── College rows ──
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 14, 18, 16),
+                  child: Column(
+                    children: [
+                      ...(item.colleges as List)
+                          .take(3)
+                          .map((college) => _CollegeRow(
+                                college: college,
+                                isDark: isDark,
+                              )),
+                      if ((item.colleges as List).length > 3)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4, left: 48),
+                          child: Text(
+                            "+ ${(item.colleges as List).length - 3} more",
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: _C.orange,
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                ],
-              ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-
-            // ── Footer ──
-            // Padding(
-            //   padding: const EdgeInsets.fromLTRB(18, 12, 18, 16),
-            //   child: Row(
-            //     mainAxisAlignment: MainAxisAlignment.end,
-            //     children: [
-            //       Text(
-            //         "View Analysis",
-            //         style: TextStyle(
-            //           fontSize: 13,
-            //           fontWeight: FontWeight.w700,
-            //           color: _C.orange.withOpacity(0.9),
-            //         ),
-            //       ),
-            //       const SizedBox(width: 5),
-            //       const Icon(Icons.arrow_forward_rounded,
-            //           size: 15, color: _C.orange),
-            //     ],
-            //   ),
-            // ),
           ],
         ),
       ),

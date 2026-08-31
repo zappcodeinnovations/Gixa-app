@@ -692,43 +692,28 @@ class _OtpVerifyBottomSheetState extends State<OtpVerifyBottomSheet> {
                   : null,
             ),
           ),
-          // const SizedBox(height: 10),
-          // Center(
-          //   child: TextButton(
-          //     onPressed: () async {
-          //       final navigator = Navigator.of(context);
-
-          //       if (navigator.canPop()) {
-          //         navigator.pop();
-          //       }
-
-          //       await Future.delayed(const Duration(milliseconds: 350));
-
-          //       if (!mounted) return;
-
-          //       showModalBottomSheet(
-          //         context: Get.overlayContext ?? context,
-          //         useRootNavigator: true,
-          //         isScrollControlled: true,
-          //         backgroundColor: Colors.transparent,
-          //         builder: (context) => Padding(
-          //           padding: EdgeInsets.only(
-          //             bottom: MediaQuery.of(context).viewInsets.bottom,
-          //           ),
-          //           child: LoginBottomSheet(
-          //             onAuthenticated: widget.onAuthenticated,
-          //           ),
-          //         ),
-          //       );
-          //     },
-          //     child: Text(
-          //       'Change number',
-          //       style: TextStyle(
-          //         color: isDark ? UColors.primaryLight : UColors.primaryDark,
-          //       ),
-          //     ),
-          //   ),
-          // ),
+          const SizedBox(height: 10),
+          Center(
+            child: TextButton(
+              onPressed: () async {
+                final onAuth = widget.onAuthenticated;
+                closeAuthBottomSheet();
+                await Future.delayed(const Duration(milliseconds: 350));
+                
+                showAuthBottomSheet(
+                  LoginBottomSheet(
+                    onAuthenticated: onAuth,
+                  ),
+                );
+              },
+              child: Text(
+                'Edit Mobile Number',
+                style: TextStyle(
+                  color: isDark ? UColors.primaryLight : UColors.primaryDark,
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );

@@ -71,8 +71,6 @@ class NotificationService {
 
   /// Handles tapping on a notification link/payload universally across the app.
   static Future<void> handleNotificationTap(String payload) async {
-    if (payload.isEmpty) return;
-
     final lowerPayload = payload.toLowerCase();
 
     // 1. External URL
@@ -103,8 +101,7 @@ class NotificationService {
   static String _resolveTargetRoute(String payload) {
     final lowerPayload = payload.toLowerCase();
     
-    if (lowerPayload == 'alert' ||
-        lowerPayload == 'alerts' ||
+    if (lowerPayload.contains('alert') ||
         lowerPayload == AppRoutes.alerts) {
       return AppRoutes.alerts;
     }

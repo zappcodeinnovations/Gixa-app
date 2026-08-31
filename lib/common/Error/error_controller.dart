@@ -10,10 +10,9 @@ class GlobalErrorController extends GetxController {
   String errorMessage = "";
 
   final Connectivity _connectivity = Connectivity();
-  StreamSubscription<ConnectivityResult>? _subscription;
+  StreamSubscription? _subscription;
 
   bool _appReady = false;
-  bool _isCheckingConnection = false;
 
   @override
   void onInit() {
@@ -31,36 +30,43 @@ class GlobalErrorController extends GetxController {
   void _listenToConnectionChanges() {
     _subscription = _connectivity.onConnectivityChanged.listen((result) {
       if (!_appReady || isClosed) return;
-      refreshConnectionStatus();
+      _handleConnectivityResult(result);
     });
   }
 
   Future<void> refreshConnectionStatus() async {
-    if (!_appReady || isClosed || _isCheckingConnection) return;
-
-    _isCheckingConnection = true;
+    if (!_appReady || isClosed) return;
 
     try {
       final result = await _connectivity.checkConnectivity();
+      _handleConnectivityResult(result);
+    } catch (e) {
+      // ignore errors
+    }
+  }
 
-      if (result == ConnectivityResult.none) {
-        _safeUpdate(() {
-          hasError = true;
-          isNetworkError = true;
-          errorMessage = "No Internet Connection";
-        });
-        return;
-      }
+  void _handleConnectivityResult(dynamic result) {
+    if (isClosed) return;
 
-      // If we have connection, clear the full screen error
-      // Any API errors will be handled gracefully by ApiClient and local UI
+    bool hasNoConnection = false;
+    if (result is List) {
+      hasNoConnection = result.contains(ConnectivityResult.none) || result.isEmpty;
+    } else {
+      hasNoConnection = result == ConnectivityResult.none;
+    }
+
+    if (hasNoConnection) {
+      _safeUpdate(() {
+        hasError = true;
+        isNetworkError = true;
+        errorMessage = "No Internet Connection";
+      });
+    } else {
       _safeUpdate(() {
         hasError = false;
         isNetworkError = false;
         errorMessage = "";
       });
-    } finally {
-      _isCheckingConnection = false;
     }
   }
 

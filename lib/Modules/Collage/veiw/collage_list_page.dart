@@ -869,6 +869,12 @@ class _CollegeListPageState extends State<CollegeListPage> {
               },
             ),
             IconButton(
+              icon: const Icon(Icons.bookmark_added_outlined),
+              onPressed: (){
+                Get.toNamed(AppRoutes.savedComparision);
+              },
+            ),
+            IconButton(
               icon: const Icon(Icons.favorite),
               onPressed: () => Get.toNamed(AppRoutes.fevouriteCollage),
             ),

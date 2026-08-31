@@ -115,6 +115,8 @@ class SubscriptionController extends GetxController {
     );
   }
 
+  final purchasedCourseNames = <String>[].obs;
+
   Future<void> loadStates() async {
     try {
       isStateLoading.value = true;
@@ -136,8 +138,21 @@ class SubscriptionController extends GetxController {
           .map((e) => e.id != -1 ? e.id : e.courseId)
           .where((id) => id != -1)
           .toList();
+
+      final profileCourse = profileController.profile.value?.course?.trim().toUpperCase();
+      if (profileCourse == 'MBBS') {
+        final bdsCourse = filteredCourses.firstWhereOrNull((c) => c.courseName.toUpperCase() == 'BDS');
+        if (bdsCourse != null) {
+          final bdsId = bdsCourse.id != -1 ? bdsCourse.id : bdsCourse.courseId;
+          if (bdsId != -1 && !lockedIds.contains(bdsId)) {
+            lockedIds.add(bdsId);
+          }
+        }
+      }
+
       lockedCourses.assignAll(lockedIds);
       selectedCourses.assignAll(lockedIds);
+      purchasedCourseNames.assignAll(data.selectedCourses.map((e) => e.courseName).toList());
     } catch (e) {
       print("❌ ERROR: $e");
     } finally {
@@ -189,6 +204,13 @@ class SubscriptionController extends GetxController {
       final fetchedPlans = await SubscriptionApi.getPlans(
         forceRefresh: forceRefresh,
       );
+      
+      fetchedPlans.sort((a, b) {
+        final priceA = double.tryParse(a.amount) ?? 0.0;
+        final priceB = double.tryParse(b.amount) ?? 0.0;
+        return priceA.compareTo(priceB);
+      });
+
       plans.assignAll(fetchedPlans);
 
       final currentPlanCode = activePlan.value?.planCode;
@@ -374,7 +396,7 @@ class SubscriptionController extends GetxController {
   // REST OF CONTROLLER — unchanged
   // ─────────────────────────────────────────────────────────────────────────
 
-  Future<bool> createOrderAndPay(int planId) async {
+  Future<bool> createOrderAndPay(int planId, {bool isAddonOnly = false}) async {
     if (isCreatingOrder.value) return false;
 
     isCreatingOrder.value = true;
@@ -383,7 +405,10 @@ class SubscriptionController extends GetxController {
       await ensurePlanCatalogLoaded();
       await _historyController.ensureLoaded();
 
-      if (_historyController.isPlanActive(planId)) {
+      final hasActiveAddon = _historyController.hasActiveAddonPlan();
+      final hasBasePlan = _historyController.isPlanActive(planId);
+      
+      if (!isAddonOnly && (hasActiveAddon || hasBasePlan)) {
         AppSnackbar.show(
           'Subscription Active',
           'You already have an active subscription for this plan.',
@@ -394,29 +419,41 @@ class SubscriptionController extends GetxController {
       final plan = plans.firstWhere((p) => p.id == planId);
       final preview = previewMap[planId];
 
-      final baseAmount = _parseAmount(plan.amount);
-
-      // Fetch fresh preview to include selected states and courses
-      final freshPreviewRes = await SubscriptionApi.purchaseSubscription(
-        planId: planId,
-        couponCode: preview?.couponApplied,
-        stateIds: selectedStates.toList(),
-        courseIds: selectedCourses.toList(),
-      );
-
+      int baseAmount = _parseAmount(plan.amount);
       int finalAmount = baseAmount;
       int extraDays = 0;
       String? appliedCouponCode = preview?.couponApplied;
 
-      if (freshPreviewRes.status == true && freshPreviewRes.data != null) {
-        finalAmount = _parseAmount(freshPreviewRes.data!.finalPayableAmount);
-        extraDays = freshPreviewRes.data!.extraDays;
-        appliedCouponCode = freshPreviewRes.data!.couponApplied;
+      if (isAddonOnly) {
+        int coursesAmount = 0;
+        for (final courseId in selectedCourses) {
+          if (lockedCourses.contains(courseId)) continue;
+          final course = availableCourses.firstWhereOrNull((c) => (c.id != -1 ? c.id : c.courseId) == courseId);
+          if (course != null) {
+            coursesAmount += course.amount.round();
+          }
+        }
+        baseAmount = coursesAmount;
+        finalAmount = coursesAmount;
       } else {
-        finalAmount = preview != null
-            ? _parseAmount(preview.finalPayableAmount)
-            : baseAmount;
-        extraDays = preview?.extraDays ?? 0;
+        // Fetch fresh preview to include selected states and courses
+        final freshPreviewRes = await SubscriptionApi.purchaseSubscription(
+          planId: planId,
+          couponCode: preview?.couponApplied,
+          stateIds: selectedStates.toList(),
+          courseIds: selectedCourses.toList(),
+        );
+
+        if (freshPreviewRes.status == true && freshPreviewRes.data != null) {
+          finalAmount = _parseAmount(freshPreviewRes.data!.finalPayableAmount);
+          extraDays = freshPreviewRes.data!.extraDays;
+          appliedCouponCode = freshPreviewRes.data!.couponApplied;
+        } else {
+          finalAmount = preview != null
+              ? _parseAmount(preview.finalPayableAmount)
+              : baseAmount;
+          extraDays = preview?.extraDays ?? 0;
+        }
       }
 
       final orderRes = await SubscriptionApi.createOrder(

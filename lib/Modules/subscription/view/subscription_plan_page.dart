@@ -10,6 +10,7 @@ import '../model/subscription_plan.dart';
 import 'package:Gixa/common/widgets/app_snackbar.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:Gixa/services/app_verification_controller.dart';
+import 'package:Gixa/Modules/subscription/widgets/course_selection_bottom_sheet.dart';
 
 // ─────────────────────────────────────────────────────────────
 //  DESIGN TOKENS
@@ -929,7 +930,7 @@ class _SubscriptionPageState extends State<SubscriptionPage>
                       ? () async {
                           if (controller.availableCourses.isNotEmpty) {
                             Get.back();
-                            await _openCourseSelectionDialog(context, plan);
+                            await CourseSelectionBottomSheet.show(context, plan);
                           } else {
                             await controller.createOrderAndPay(plan.id);
                             Get.back();
@@ -946,211 +947,7 @@ class _SubscriptionPageState extends State<SubscriptionPage>
     );
   }
 
-  Future<void> _openCourseSelectionDialog(
-    BuildContext context,
-    SubscriptionPlan plan,
-  ) async {
-    final controller = Get.find<SubscriptionController>();
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // Fetch initial price including default/locked courses
-    controller.updateCourseSelectionPrice(plan.id);
-
-    await showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) {
-        return Container(
-          height: MediaQuery.of(context).size.height * 0.82,
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF121218) : Colors.white,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-          ),
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-          child: Column(
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(top: 8, bottom: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-              ),
-              Obx(
-                () => Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Select Courses',
-                      style: _T.heading(
-                        18,
-                        color: isDark ? Colors.white : Colors.black,
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 5,
-                      ),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [_T.orange, _T.pink],
-                        ),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        '${controller.selectedCourses.length} Selected',
-                        style: _T.body(
-                          12,
-                          color: Colors.white,
-                          fw: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 14),
-
-              // Course list
-              Expanded(
-                child: Obx(() {
-                  final sortedCourses = controller.availableCourses.toList();
-                  return ListView.builder(
-                    itemCount: sortedCourses.length,
-                    itemBuilder: (_, i) {
-                      final course = sortedCourses[i];
-                      final int courseId = course.id != -1 ? course.id : course.courseId;
-                      if (courseId == -1) return const SizedBox();
-                      return Obx(() {
-                        final isSelected = controller.selectedCourses.contains(
-                          courseId,
-                        );
-                        return AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          margin: const EdgeInsets.only(bottom: 8),
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? _T.orange.withOpacity(0.1)
-                                : (isDark
-                                      ? const Color(0xFF1E1E2E)
-                                      : Colors.grey.shade50),
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
-                              color: isSelected
-                                  ? _T.orange.withOpacity(0.5)
-                                  : Colors.transparent,
-                              width: 1.5,
-                            ),
-                          ),
-                          child: CheckboxListTile(
-                            value: isSelected,
-                            activeColor: _T.orange,
-                            checkColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            onChanged: (_) {
-                              final isLocked = controller.lockedCourses.contains(courseId);
-                              if (isLocked) {
-                                AppSnackbar.show(
-                                  'Profile Course',
-                                  'This course was added during registration and is included by default.',
-                                );
-                                return;
-                              }
-
-                              if (isSelected) {
-                                controller.selectedCourses.remove(courseId);
-                              } else {
-                                controller.selectedCourses.add(courseId);
-                              }
-                              controller.selectedCourses.refresh();
-                              controller.updateCourseSelectionPrice(plan.id);
-                            },
-                            title: Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    course.courseName,
-                                    style: _T.body(
-                                      14,
-                                      color: isDark
-                                          ? Colors.white
-                                          : Colors.black87,
-                                      fw: isSelected
-                                          ? FontWeight.w600
-                                          : FontWeight.normal,
-                                    ),
-                                  ),
-                                ),
-                                if (controller.lockedCourses.contains(courseId))
-                                  Icon(
-                                    Icons.verified_user_rounded,
-                                    size: 16,
-                                    color: _T.orange,
-                                  ),
-                              ],
-                            ),
-                            subtitle: Text(
-                              controller.lockedCourses.contains(courseId)
-                                  ? 'Included in Profile'
-                                  : 'Amount: ₹${course.amount}',
-                              style: _T.body(
-                                13,
-                                color: Colors.grey.shade600,
-                              ),
-                            ),
-                          ),
-                        );
-                      });
-                    },
-                  );
-                }),
-              ),
-              const SizedBox(height: 10),
-
-              // Continue button
-              Obx(() {
-                final isEnabled = true;
-                final preview = controller.previewFor(plan.id);
-                
-                String displayAmount = plan.amount;
-                if (preview != null) {
-                  final cleaned = preview.finalPayableAmount.replaceAll(RegExp(r'[^0-9.]'), '');
-                  if (cleaned.isNotEmpty) {
-                    displayAmount = double.parse(cleaned).round().toString();
-                  }
-                } else {
-                  final cleaned = plan.amount.replaceAll(RegExp(r'[^0-9.]'), '');
-                  if (cleaned.isNotEmpty) {
-                    displayAmount = double.parse(cleaned).round().toString();
-                  }
-                }
-
-                return _GradientButton(
-                  label: 'Pay ₹$displayAmount',
-                  isLoading: false,
-                  onTap: isEnabled
-                      ? () async {
-                          await controller.createOrderAndPay(plan.id);
-                          Get.back();
-                        }
-                      : null,
-                  enabled: isEnabled,
-                );
-              }),
-            ],
-          ),
-        );
-      },
-    );
-  }
 
   Widget _row(String label, String value, {bool isBold = false, Color? color}) {
     return Padding(

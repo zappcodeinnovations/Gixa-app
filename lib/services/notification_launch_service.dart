@@ -39,8 +39,9 @@ class NotificationLaunchService {
     }
 
     final type = (data['type'] as String? ?? '').toLowerCase();
+    final routeLower = (explicitRoute ?? '').toLowerCase();
 
-    if (type == 'alert' || type == 'alerts') {
+    if (type.contains('alert') || routeLower.contains('alert')) {
       return '/alerts';
     }
 

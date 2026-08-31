@@ -73,7 +73,9 @@ class CollegeHeaderSection extends StatelessWidget {
                 Expanded(
                   child: Text(
                     college.address.isNotEmpty
-                        ? college.address
+                        ? (college.address.toLowerCase().contains(college.state.name.toLowerCase())
+                            ? college.address
+                            : "${college.address}, ${college.state.name}")
                         : "${college.state.name}, India",
                     style: GoogleFonts.inter(
                       color: colors.textSub,

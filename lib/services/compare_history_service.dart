@@ -8,4 +8,11 @@ class CompareHistoryService {
 
     return CompareHistoryResponse.fromJson(response as Map<String, dynamic>);
   }
+
+  static Future<void> deleteHistory(int historyId) async {
+    await ApiClient.delete(
+      ApiEndpoints.deleteCompareHistory,
+      {'history_id': historyId},
+    );
+  }
 }

@@ -41,6 +41,7 @@ class ApiEndpoints {
   static const String compareColleges = '/api/colleges/compare/';
   static const String saveCompareColleges = '/api/colleges/compare/save/';
   static const String compareHistory = '/api/colleges/compare/history/';
+  static const String deleteCompareHistory = '/api/colleges/compare/delete/';
 
   //prediction
   static const String predictCollege = "/api/prediction/";

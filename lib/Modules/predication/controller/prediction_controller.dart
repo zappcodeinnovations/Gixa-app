@@ -29,7 +29,7 @@ class PredictionController extends GetxController {
     if (p == null) return;
     userAir.value = p.allIndiaRank ?? 0;
     userMarks.value = p.neetScore ?? 0;
-    selectedState.value = "Select State";
+    selectedState.value = p.state ?? "Select State";
     selectedCategory.value = p.category ?? "";
     selectedCourse.value = "Select Course";
     selectedSpecialty.value = "Select Specialty";
@@ -103,7 +103,11 @@ class PredictionController extends GetxController {
 
   /// Returns the available quotas for the currently selected state
   List<String> get availableQuotasForSelectedState {
-    final stateData = stateCategoryMap[effectiveState];
+    final stateKey = stateCategoryMap.keys.firstWhere(
+      (k) => k.toLowerCase() == effectiveState.trim().toLowerCase(),
+      orElse: () => '',
+    );
+    final stateData = stateCategoryMap[stateKey];
     return stateData?.availableQuotas ?? [];
   }
 
@@ -471,11 +475,14 @@ Generating your AI college prediction...
       for (var item in data) {
         stateCategoryMap[item.state] = item;
       }
-      final selectedStateExists = stateList.any(
-        (state) => state.name == selectedState.value,
+      final matchedState = stateList.firstWhere(
+        (state) => state.name.toLowerCase() == selectedState.value.toLowerCase(),
+        orElse: () => StateModel(id: 0, name: ''),
       );
-      if (selectedState.value != 'Select State' && !selectedStateExists) {
+      if (selectedState.value != 'Select State' && matchedState.name.isEmpty) {
         selectedState.value = "Select State";
+      } else if (matchedState.name.isNotEmpty) {
+        selectedState.value = matchedState.name;
       }
 
       if (effectiveState.isNotEmpty) {
@@ -490,7 +497,11 @@ Generating your AI college prediction...
     String state, {
     bool preserveExistingCategory = false,
   }) {
-    final data = stateCategoryMap[state];
+    final stateKey = stateCategoryMap.keys.firstWhere(
+      (k) => k.toLowerCase() == state.trim().toLowerCase(),
+      orElse: () => '',
+    );
+    final data = stateCategoryMap[stateKey];
     if (data == null) return;
 
     final previousCategory = selectedCategory.value.trim();
@@ -582,6 +593,12 @@ Generating your AI college prediction...
     try {
       await fetchUserProfile(forceRefresh: forceRefresh);
       syncWithProfile(profileController);
+      
+      final subCtrl = Get.isRegistered<SubscriptionController>()
+          ? Get.find<SubscriptionController>()
+          : Get.put(SubscriptionController());
+      await subCtrl.loadStates();
+      
       await loadMasters(forceRefresh: forceRefresh);
       await loadStatewiseCategories(forceRefresh: forceRefresh);
     } finally {

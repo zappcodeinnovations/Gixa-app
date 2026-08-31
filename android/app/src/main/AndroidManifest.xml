@@ -5,6 +5,10 @@
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="com.google.android.gms.permission.AD_ID"/>
 
+    <!-- Remove broad media permissions to comply with Google Play Policy (use Android Photo Picker instead) -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" tools:node="remove" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" tools:node="remove" />
+
     <!-- Required for Razorpay to detect installed UPI apps on Android 11+ -->
     <queries>
         <intent>

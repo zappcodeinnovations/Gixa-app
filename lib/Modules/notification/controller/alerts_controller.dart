@@ -280,7 +280,7 @@ class AlertsController extends GetxController {
           body: latestAlert.bodyText,
           payload: latestAlert.link.isNotEmpty
               ? latestAlert.link
-              : latestAlert.sourceUrl,
+              : (latestAlert.sourceUrl.isNotEmpty ? latestAlert.sourceUrl : 'alerts'),
         );
       }
 
@@ -311,7 +311,7 @@ class AlertsController extends GetxController {
         id: alert.id,
         title: alert.title.isNotEmpty ? alert.title : 'New Alert',
         body: alert.bodyText,
-        payload: alert.link.isNotEmpty ? alert.link : alert.sourceUrl,
+        payload: alert.link.isNotEmpty ? alert.link : (alert.sourceUrl.isNotEmpty ? alert.sourceUrl : 'alerts'),
       );
     }
 

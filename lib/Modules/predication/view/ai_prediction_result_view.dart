@@ -73,7 +73,10 @@ class _AiPredictionResultViewState extends State<AiPredictionResultView> {
 
   String _instituteTypeLabel(CollegeModel college) {
     final instituteType = college.instituteType.trim();
-    if (instituteType.isEmpty) return "Private";
+    if (instituteType.isEmpty) {
+      final isMcc = controller.effectiveState.toUpperCase() == 'MCC';
+      return isMcc ? "Deemed" : "Private";
+    }
     if (_isGovernmentCollege(college)) return "Government";
     return instituteType;
   }
@@ -107,10 +110,13 @@ class _AiPredictionResultViewState extends State<AiPredictionResultView> {
         .length;
     final allCount = widget.predictionData.collegeList.length;
 
+    final isMcc = controller.effectiveState.toUpperCase() == 'MCC';
+    final pvtLabel = isMcc ? "Deemed" : "Private";
+
     final filterLabels = [
       {"label": "All", "count": allCount},
       {"label": "Government", "count": govtCount},
-      {"label": "Private", "count": pvtCount},
+      {"label": pvtLabel, "count": pvtCount},
     ];
 
     return Obx(
@@ -527,7 +533,7 @@ class _AiPredictionResultViewState extends State<AiPredictionResultView> {
         displayList = privateColleges;
       } else if (selectedFilter.value == "Government") {
         displayList = govtColleges;
-      } else if (selectedFilter.value == "Private") {
+      } else if (selectedFilter.value == "Private" || selectedFilter.value == "Deemed") {
         displayList = privateColleges;
       } else {
         displayList = List<CollegeModel>.from(

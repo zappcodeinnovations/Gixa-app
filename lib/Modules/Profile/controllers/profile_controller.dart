@@ -65,6 +65,10 @@ class ProfileController extends GetxController {
   }
 
   bool get isUGUser {
+    final level = profile.value?.courseLevel;
+    if (level != null && level.isNotEmpty) {
+      return level.toUpperCase() == 'UG';
+    }
     final cId = selectedCourseId.value;
     if (cId == null) return true; // Default to UG
     return _ugCourseIds.contains(cId);

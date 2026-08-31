@@ -51,6 +51,7 @@ void main() async {
     // Fall back to link/url for external URLs, otherwise use the type.
     final link = message.data['link'] as String? ?? message.data['url'] as String? ?? '';
     final type = (message.data['type'] as String? ?? '').toLowerCase();
+    final route = message.data['route'] as String? ?? '';
     
     // 🔥 Instant Logout
     if (type == 'force_logout' || type == 'logout') {
@@ -58,7 +59,7 @@ void main() async {
       return;
     }
 
-    final payload = link.isNotEmpty ? link : (type.isNotEmpty ? type : 'notifications');
+    final payload = link.isNotEmpty ? link : (route.isNotEmpty ? route : (type.isNotEmpty ? type : 'notifications'));
 
     NotificationService.showAlertNotification(
       id: DateTime.now().millisecondsSinceEpoch.remainder(100000),
@@ -101,6 +102,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   // Same payload logic as foreground handler
   final link = message.data['link'] as String? ?? message.data['url'] as String? ?? '';
   final type = (message.data['type'] as String? ?? '').toLowerCase();
+  final route = message.data['route'] as String? ?? '';
   
   if (type == 'force_logout' || type == 'logout') {
     await GetStorage.init();
@@ -113,7 +115,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     // Token will be invalid anyway, and API will return 401 if they somehow had valid token
   }
 
-  final payload = link.isNotEmpty ? link : (type.isNotEmpty ? type : 'notifications');
+  final payload = link.isNotEmpty ? link : (route.isNotEmpty ? route : (type.isNotEmpty ? type : 'notifications'));
 
   try {
     await NotificationService.init();

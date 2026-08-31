@@ -37,6 +37,7 @@ class ProfileModel {
   final String? disabilityDetails;
   final bool? physicalDisability;
   final List<String>? predictionCourses;
+  final String? courseLevel;
 
   ProfileModel({
     required this.id,
@@ -69,6 +70,7 @@ class ProfileModel {
     required this.documents,
     this.disabilityDetails,
     this.physicalDisability,
+    this.courseLevel,
   });
 
   factory ProfileModel.fromJson(Map<String, dynamic> json) {
@@ -141,6 +143,7 @@ class ProfileModel {
       predictionCourses: (json['prediction_courses'] as List<dynamic>?)
           ?.map((e) => e.toString())
           .toList(),
+      courseLevel: json['course_level']?.toString(),
     );
   }
 
