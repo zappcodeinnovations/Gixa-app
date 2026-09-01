@@ -939,6 +939,7 @@ class EditProfileView extends StatelessWidget {
   }) {
     return InputDecoration(
       labelText: label,
+      floatingLabelBehavior: FloatingLabelBehavior.always,
       labelStyle: GoogleFonts.nunito(
         fontSize: 13,
         color: isDark ? Colors.white38 : Colors.grey.shade500,

@@ -189,7 +189,7 @@ class _CategoryListState extends State<CategoryList>
                 crossAxisCount: crossAxisCount,
                 crossAxisSpacing: isTablet ? 14 : 8,
                 mainAxisSpacing: isTablet ? 22 : 18,
-                childAspectRatio: isTablet ? 0.92 : 0.85,
+                childAspectRatio: isTablet ? 0.92 : 0.76,
               ),
               itemCount: items.length,
               itemBuilder: (_, i) => FadeTransition(

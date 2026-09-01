@@ -409,6 +409,8 @@ Generating your AI college prediction...
         return "govt";
       case "Pvt":
         return "private";
+      case "Deemed":
+        return "deemed";
       case "Both":
         return "both";
       default:

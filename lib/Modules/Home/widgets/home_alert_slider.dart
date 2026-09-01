@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:Gixa/services/auth_guard.dart';
+import 'package:Gixa/routes/app_routes.dart';
 import 'dart:async';
 
 class HomeAlertSlider extends StatefulWidget {
@@ -106,7 +107,7 @@ class _HomeAlertSliderState extends State<HomeAlertSlider> {
                     const SizedBox(width: 8),
 
                     Text(
-                      "counselling Notifications",
+                      "Counselling Notifications",
 
                       style: GoogleFonts.inter(
                         fontSize: 12,
@@ -121,7 +122,7 @@ class _HomeAlertSliderState extends State<HomeAlertSlider> {
                   onPressed: () {
                     AuthGuard.checkAccess(
                       onAllowed: () {
-                        Get.to(() => const AlertsPage());
+                        Get.toNamed(AppRoutes.notifications);
                       },
                     );
                   },

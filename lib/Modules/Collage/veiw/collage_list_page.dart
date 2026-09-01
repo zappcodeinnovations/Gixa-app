@@ -2009,21 +2009,25 @@ class _CollegeCardState extends State<_CollegeCard> {
                       ),
                     ),
 
-                    // Divider
-                    Container(width: 1, height: 36, color: widget.borderColor),
-
-                    // Seats right col (only if not null)
-                    Expanded(
-                      child: _InfoBlock(
-                        label: 'total_seats'.tr,
-                        value: totalSeats != null && totalSeats > 0
-                            ? totalSeats.toString()
-                            : 'N/A',
-                        icon: Icons.event_seat_outlined,
-                        subTextColor: widget.subTextColor,
-                        textColor: widget.textColor,
+                    if (totalSeats != null && totalSeats > 0) ...[
+                      // Divider
+                      Container(
+                        width: 1,
+                        height: 36,
+                        color: widget.borderColor,
                       ),
-                    ),
+
+                      // Seats right col
+                      Expanded(
+                        child: _InfoBlock(
+                          label: 'total_seats'.tr,
+                          value: totalSeats.toString(),
+                          icon: Icons.event_seat_outlined,
+                          subTextColor: widget.subTextColor,
+                          textColor: widget.textColor,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),

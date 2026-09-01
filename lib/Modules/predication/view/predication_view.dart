@@ -961,9 +961,11 @@ class _PredictionViewState extends State<PredictionView>
         Obx(
           () {
             final isMcc = controller.effectiveState.toUpperCase() == 'MCC';
+            final labels = ["Govt", isMcc ? "Deemed" : "Pvt", "Both"];
+            final values = ["Govt", isMcc ? "Deemed" : "Pvt", "Both"];
             return _pillRow(
-              items: ["Govt", isMcc ? "Deemed" : "Pvt", "Both"],
-              values: ["Govt", "Pvt", "Both"],
+              items: labels,
+              values: values,
               selected: controller.selectedInstituteType.value,
               onTap: (v) => controller.selectedInstituteType.value = v,
               isDark: isDark,

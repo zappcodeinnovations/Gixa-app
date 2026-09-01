@@ -360,6 +360,11 @@ class _CompareCollegesViewState extends State<CompareCollegesView>
 
   // ─── QUICK STATS ─────────────────────────────────────────
   Widget _buildQuickStats(List<CollegeComparison> colleges, bool isDark) {
+    final hasEmail = colleges.any((e) =>
+        e.contactEmail != null &&
+        e.contactEmail!.trim().isNotEmpty &&
+        e.contactEmail != "N/A");
+
     final rows = [
       _StatRowData(
         Icons.location_on_rounded,
@@ -405,12 +410,13 @@ class _CompareCollegesViewState extends State<CompareCollegesView>
         colleges.map((e) => e.totalSeatsCount.toString()).toList(),
         _C.orange,
       ),
-      _StatRowData(
-        Icons.email_rounded,
-        "Email",
-        colleges.map((e) => e.contactEmail ?? "N/A").toList(),
-        const Color(0xFF64748B),
-      ),
+      if (hasEmail)
+        _StatRowData(
+          Icons.email_rounded,
+          "Email",
+          colleges.map((e) => e.contactEmail ?? "N/A").toList(),
+          const Color(0xFF64748B),
+        ),
     ];
 
     return Column(
