@@ -342,31 +342,89 @@ class StudentDocumentsUnifiedPage extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 10),
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () {
-                  showDocumentPreview(doc.fileUrl);
-                },
-                icon: const Icon(Icons.visibility, size: 16),
-                label: const Text("View", style: TextStyle(fontSize: 12)),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(backgroundColor: editColor),
-                onPressed: () {
-                  uploadController.updateDocument(docType);
-                },
-                icon: const Icon(Icons.edit, size: 16),
-                label: const Text("Update", style: TextStyle(fontSize: 12)),
-              ),
-            ),
-          ],
+        GetBuilder<DocumentController>(
+          builder: (controller) {
+            final isDeleting =
+                controller.isDeleting && controller.currentDeletingId == doc.id;
+
+            return Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      showDocumentPreview(doc.fileUrl);
+                    },
+                    icon: const Icon(Icons.visibility, size: 16),
+                    label: const Text("View", style: TextStyle(fontSize: 12)),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(backgroundColor: editColor),
+                    onPressed: () {
+                      uploadController.updateDocument(docType);
+                    },
+                    icon: const Icon(Icons.edit, size: 16),
+                    label: const Text("Update", style: TextStyle(fontSize: 12)),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  onPressed: isDeleting
+                      ? null
+                      : () {
+                          _showDeleteConfirmation(uploadController, doc.id);
+                        },
+                  style: IconButton.styleFrom(
+                    backgroundColor: Colors.red.withOpacity(0.1),
+                    foregroundColor: Colors.red,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  icon: isDeleting
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.red,
+                          ),
+                        )
+                      : const Icon(Icons.delete_outline, size: 20),
+                ),
+              ],
+            );
+          },
         ),
       ],
+    );
+  }
+
+  void _showDeleteConfirmation(
+    DocumentController controller,
+    int docId,
+  ) {
+    Get.dialog(
+      AlertDialog(
+        title: const Text("Delete Document?"),
+        content: const Text("Are you sure you want to delete this document? This action cannot be undone."),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () {
+              Get.back();
+              controller.deleteDocument(docId);
+            },
+            child: const Text("Delete", style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
     );
   }
 }

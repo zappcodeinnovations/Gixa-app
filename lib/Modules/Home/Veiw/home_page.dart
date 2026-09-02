@@ -9,7 +9,7 @@ import 'package:Gixa/Modules/cutoff/view/state_wise_distribution_page.dart';
 import 'package:Gixa/routes/app_routes.dart';
 import 'package:Gixa/Modules/Collage/controller/collage_list_controller.dart';
 import 'package:Gixa/Modules/Collage/veiw/collage_list_page.dart';
-import 'package:Gixa/Modules/Faq/controller/faq_controller.dart';
+import 'package:Gixa/Modules/faq/controller/faq_controller.dart';
 import 'package:Gixa/Modules/Home/widgets/category_list.dart';
 import 'package:Gixa/Modules/Home/widgets/chatbot_floating_button.dart';
 import 'package:Gixa/Modules/Home/widgets/city_avatar.dart';
@@ -745,22 +745,39 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
                               const SizedBox(height: 6),
 
-                              /// SHOW MORE BUTTON
+                              /// LOAD MORE / SHOW LESS BUTTON
                               if (faqController.faqList.length > 3)
                                 Center(
-                                  child: TextButton(
-                                    onPressed: faqController.toggleFaqs,
-                                    style: TextButton.styleFrom(
-                                      foregroundColor: kHomeAccentColor,
-                                    ),
-                                    child: Text(
-                                      faqController.showAllFaqs.value
-                                          ? "Show Less"
-                                          : "View All FAQs",
-                                      style: GoogleFonts.inter(
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      if (faqController.hasMore)
+                                        TextButton(
+                                          onPressed: faqController.loadMore,
+                                          style: TextButton.styleFrom(
+                                            foregroundColor: kHomeAccentColor,
+                                          ),
+                                          child: Text(
+                                            "More Faqs",
+                                            style: GoogleFonts.inter(
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                      if (faqController.visibleCount.value > 3)
+                                        TextButton(
+                                          onPressed: faqController.showLess,
+                                          style: TextButton.styleFrom(
+                                            foregroundColor: Colors.grey,
+                                          ),
+                                          child: Text(
+                                            "Show Less",
+                                            style: GoogleFonts.inter(
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                    ],
                                   ),
                                 ),
                             ],

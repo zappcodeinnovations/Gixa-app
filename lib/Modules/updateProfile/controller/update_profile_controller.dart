@@ -107,7 +107,7 @@ class UpdateProfileController extends GetxController {
     addressCtrl.text = profile.address ?? '';
     courseCtrl.text = profile.course ?? '';
     stateCtrl.text = profile.state ?? '';
-    categoryCtrl.text = profile.caste ?? '';
+    categoryCtrl.text = profile.category ?? '';
     neetScoreCtrl.text = profile.neetScore?.toString() ?? '';
     emailCtrl.text = profile.user.email ?? '';
     airCtrl.text = profile.allIndiaRank?.toString() ?? '';

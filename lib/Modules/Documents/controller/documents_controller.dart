@@ -21,7 +21,9 @@ class DocumentController extends GetxController {
   ];
 
   bool isUploading = false;
+  bool isDeleting = false;
   String currentUploadingDoc = '';
+  int? currentDeletingId;
 
   final int maxFileSizeMB = 10;
 
@@ -31,6 +33,53 @@ class DocumentController extends GetxController {
 
   Future<void> updateDocument(String docType) async {
     await _pickAndProcess(docType, isUpdate: true);
+  }
+
+  Future<void> deleteDocument(int documentId) async {
+    try {
+      final viewController = Get.find<StudentDocumentsController>();
+      final doc =
+          viewController.documents.firstWhereOrNull((d) => d.id == documentId);
+
+      if (doc == null) {
+        AppSnackbar.show("Error", "Document not found locally.");
+        return;
+      }
+
+      isDeleting = true;
+      currentDeletingId = documentId;
+      update();
+
+      await _service.deleteDocument(
+        documentId: documentId,
+        documentType: doc.documentType,
+        documentName: doc.documentName,
+      );
+
+      /// Refresh documents list
+      await Get.find<StudentDocumentsController>().refreshDocuments();
+
+      /// 🔥 Refresh profile completion
+      final profileController = Get.find<ProfileController>();
+      await profileController.fetchProfile();
+
+      AppSnackbar.show(
+        "Success",
+        "Document deleted successfully",
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    } catch (e) {
+      print("ERROR: $e");
+      AppSnackbar.show(
+        "Error",
+        "Failed to delete document. Please try again.",
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    } finally {
+      isDeleting = false;
+      currentDeletingId = null;
+      update();
+    }
   }
 
   Future<void> _pickAndProcess(String docType, {required bool isUpdate}) async {

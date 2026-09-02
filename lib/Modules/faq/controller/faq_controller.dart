@@ -5,7 +5,7 @@ import 'package:get/get.dart';
 class FaqController extends GetxController {
   var isLoading = false.obs;
   var faqList = <FaqItem>[].obs;
-  var showAllFaqs = false.obs;
+  var visibleCount = 3.obs;
 
   Future<void> fetchFaqs({
     String search = "",
@@ -28,11 +28,17 @@ class FaqController extends GetxController {
     }
   }
 
-  void toggleFaqs() {
-    showAllFaqs.value = !showAllFaqs.value;
+  void loadMore() {
+    visibleCount.value += 5;
   }
 
+  void showLess() {
+    visibleCount.value = 3;
+  }
+
+  bool get hasMore => visibleCount.value < faqList.length;
+
   List<FaqItem> get displayedFaqs {
-    return showAllFaqs.value ? faqList : faqList.take(3).toList();
+    return faqList.take(visibleCount.value).toList();
   }
 }
