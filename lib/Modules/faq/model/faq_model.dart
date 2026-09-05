@@ -17,12 +17,16 @@ class FaqItem {
 
   factory FaqItem.fromJson(Map<String, dynamic> json) {
     return FaqItem(
-      id: json['id'] ?? 0,
-      question: json['question'] ?? '',
-      answer: json['answer'] ?? '',
-      order: json['order'] ?? 0,
-      createdAt: json['created_at'] ?? '',
-      updatedAt: json['updated_at'] ?? '',
+      id: json['id'] is int
+          ? json['id'] as int
+          : int.tryParse(json['id']?.toString() ?? '0') ?? 0,
+      question: json['question']?.toString() ?? '',
+      answer: json['answer']?.toString() ?? '',
+      order: json['order'] is int
+          ? json['order'] as int
+          : int.tryParse(json['order']?.toString() ?? '0') ?? 0,
+      createdAt: json['created_at']?.toString() ?? '',
+      updatedAt: json['updated_at']?.toString() ?? '',
     );
   }
 }

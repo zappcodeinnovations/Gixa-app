@@ -658,6 +658,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                               /// FAQ LIST
                               ...faqs.map((faq) {
                                 return Container(
+                                  key: ValueKey(faq.id),
                                   margin: const EdgeInsets.only(bottom: 12),
                                   decoration: BoxDecoration(
                                     color: isDark
@@ -679,6 +680,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                     ],
                                   ),
                                   child: ExpansionTile(
+                                    key: PageStorageKey('faq_${faq.id}'),
+                                    shape: const RoundedRectangleBorder(
+                                      side: BorderSide.none,
+                                    ),
+                                    collapsedShape: const RoundedRectangleBorder(
+                                      side: BorderSide.none,
+                                    ),
                                     tilePadding: const EdgeInsets.symmetric(
                                       horizontal: 16,
                                       vertical: 4,
