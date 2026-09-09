@@ -7,24 +7,41 @@ class StateCategoryApiService {
 
   static Future<Map<String, dynamic>> getStateCategories({
     List<String>? states,
+    int? courseId,
     bool showGlobalNetworkError = true,
     bool forceRefresh = false,
   }) async {
     try {
+      final queryParams = <String, String>{};
+
       final requestedStates = (states ?? const <String>[])
           .map((state) => state.trim())
           .where((state) => state.isNotEmpty)
           .toList();
-      final endpoint = requestedStates.isEmpty
-          ? ApiEndpoints.statewiseAvailability
-          : "${ApiEndpoints.statewiseAvailability}"
-                "?states=${requestedStates.join(",")}";
+
+      if (requestedStates.isNotEmpty) {
+        if (requestedStates.length == 1) {
+          queryParams['state'] = requestedStates[0];
+        } else {
+          queryParams['states'] = requestedStates.join(",");
+        }
+      }
+
+      if (courseId != null) {
+        queryParams['course_id'] = courseId.toString();
+      }
+
+      final uri = Uri.parse(ApiEndpoints.statewiseAvailability);
+      final endpoint = uri.replace(queryParameters: {
+        ...uri.queryParameters,
+        ...queryParams,
+      }).toString();
 
       final response = await ApiClient.get(
         endpoint,
         showGlobalNetworkError: showGlobalNetworkError,
         requestPolicy: RequestPolicy(
-          ttl: Duration(minutes: 5),
+          ttl: const Duration(minutes: 5),
           forceRefresh: forceRefresh,
         ),
       );

@@ -17,13 +17,13 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace = "com.gixa.services"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     defaultConfig {
         applicationId = "com.gixa.services"
         minSdk = flutter.minSdkVersion
-        targetSdk = 35
+        targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }

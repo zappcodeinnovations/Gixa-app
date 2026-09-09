@@ -423,7 +423,15 @@ Generating your AI college prediction...
     bool forceRefresh = false,
   }) async {
     try {
+      final selectedCourseName = selectedCourse.value;
+      int? courseId;
+      if (selectedCourseName != 'Select Course' && selectedCourseName.isNotEmpty) {
+        final course = currentAvailableCourses.firstWhereOrNull((c) => c.name == selectedCourseName);
+        courseId = course?.id;
+      }
+
       final responseMap = await StateCategoryApiService.getStateCategories(
+        courseId: courseId,
         showGlobalNetworkError: showGlobalNetworkError,
         forceRefresh: forceRefresh,
       );
@@ -552,7 +560,7 @@ Generating your AI college prediction...
 
   void onStateChanged(String state) {
     selectedState.value = state;
-    updateCategoriesByState(effectiveState);
+    loadStatewiseCategories(forceRefresh: true);
   }
 
   void loadRecentPredictions() {
@@ -848,14 +856,17 @@ Generating your AI college prediction...
           data['statewise_courses_for_pg'] as Map<String, List<CourseModel>>? ??
           {};
 
+      print("🔍 [LOAD MASTERS LOG]");
+      print("  - Is UG User: ${profileController.isUGUser}");
+      print("  - Fetched UG Master Courses count: ${fetchedCourses.length}");
+      print("  - Fetched UG Master Courses list: ${fetchedCourses.map((e) => e.name).toList()}");
+
       /// Keep profile-selected course when valid; otherwise fallback to first.
       final hasSelectedCourse = currentAvailableCourses.any(
         (course) => course.name == selectedCourse.value,
       );
       if (!hasSelectedCourse) {
-        selectedCourse.value = currentAvailableCourses.isNotEmpty
-            ? currentAvailableCourses.first.name
-            : "";
+        selectedCourse.value = "Select Course";
       }
     } on AppException catch (e) {
       AppSnackbar.show("Error", e.message);

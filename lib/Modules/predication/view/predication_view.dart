@@ -784,10 +784,16 @@ class _PredictionViewState extends State<PredictionView>
 
         final List<String> dropdownItems = [
           'Select Course',
-          ...(combinedCourses.isNotEmpty
-              ? combinedCourses
-              : controller.currentAvailableCourses.map((e) => e.name)),
+          ...combinedCourses,
         ];
+
+        print("🔍 [COURSE DROPDOWN DEBUG LOG]");
+        print("  - Profile Single Course: '$profileCourse'");
+        print("  - Profile Prediction Courses: $predictionCourses");
+        print("  - Purchased Course Addons: $purchasedCourses");
+        print("  - Combined User Courses: $combinedCourses (Empty? ${combinedCourses.isEmpty})");
+        print("  - Master Available Courses Fallback: ${controller.currentAvailableCourses.map((e) => e.name).toList()}");
+        print("  - Final Items in Dropdown: $dropdownItems");
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.end,
@@ -811,6 +817,9 @@ class _PredictionViewState extends State<PredictionView>
                   controller.courseError.value = '';
                   // Reset specialty when course changes
                   controller.selectedSpecialty.value = 'Select Specialty';
+                  
+                  // Re-fetch quotas for new course
+                  controller.loadStatewiseCategories(forceRefresh: true);
                 }
                 print('State wise course for pg: State: ${controller.selectedState.value}, Course: ${controller.selectedCourse.value}');
               },
