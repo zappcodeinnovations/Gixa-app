@@ -23,8 +23,17 @@ class NotificationService {
     tz.setLocalLocation(tz.getLocation('Asia/Kolkata'));
 
     const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const darwinInit = DarwinInitializationSettings(
+      requestAlertPermission: false,
+      requestBadgePermission: false,
+      requestSoundPermission: false,
+    );
 
-    const initSettings = InitializationSettings(android: androidInit);
+    const initSettings = InitializationSettings(
+      android: androidInit,
+      iOS: darwinInit,
+      macOS: darwinInit,
+    );
 
     await _plugin.initialize(
       initSettings,
@@ -48,14 +57,17 @@ class NotificationService {
         launchDetails.didNotificationLaunchApp &&
         launchDetails.notificationResponse != null) {
       final payload = launchDetails.notificationResponse!.payload ?? '';
-      
+
       final lowerPayload = payload.toLowerCase();
-      if (lowerPayload.startsWith('http://') || lowerPayload.startsWith('https://')) {
+      if (lowerPayload.startsWith('http://') ||
+          lowerPayload.startsWith('https://')) {
         // External URL — best effort: open after a short delay
         Future.delayed(const Duration(seconds: 2), () async {
           try {
-            await launchUrl(Uri.parse(payload),
-                mode: LaunchMode.externalApplication);
+            await launchUrl(
+              Uri.parse(payload),
+              mode: LaunchMode.externalApplication,
+            );
           } catch (_) {}
         });
       } else {
@@ -74,7 +86,8 @@ class NotificationService {
     final lowerPayload = payload.toLowerCase();
 
     // 1. External URL
-    if (lowerPayload.startsWith('http://') || lowerPayload.startsWith('https://')) {
+    if (lowerPayload.startsWith('http://') ||
+        lowerPayload.startsWith('https://')) {
       try {
         final uri = Uri.parse(payload);
         await launchUrl(uri, mode: LaunchMode.externalApplication);
@@ -100,21 +113,20 @@ class NotificationService {
 
   static String _resolveTargetRoute(String payload) {
     final lowerPayload = payload.toLowerCase();
-    
-    if (lowerPayload.contains('alert') ||
-        lowerPayload == AppRoutes.alerts) {
+
+    if (lowerPayload.contains('alert') || lowerPayload == AppRoutes.alerts) {
       return AppRoutes.alerts;
     }
-    
+
     // Navigate to choiceFilling (PredictionSheetScreen)
-    if (lowerPayload.contains('choice filling') || 
+    if (lowerPayload.contains('choice filling') ||
         lowerPayload.contains('choice_filling') ||
         lowerPayload.contains('choice-filling') ||
-        lowerPayload.contains('prediction') || 
+        lowerPayload.contains('prediction') ||
         lowerPayload.contains('predication')) {
       return AppRoutes.choiceFilling;
     }
-    
+
     if (lowerPayload == 'notification' ||
         lowerPayload == 'notifications' ||
         lowerPayload == AppRoutes.notifications ||
@@ -122,15 +134,15 @@ class NotificationService {
         payload.isEmpty) {
       return AppRoutes.notifications;
     }
-    
+
     if (payload.startsWith('/')) {
       return payload;
     }
-    
+
     return AppRoutes.notifications;
   }
 
-  /// 🔔 ANDROID 13+ PERMISSION
+  /// 🔔 NOTIFICATION PERMISSION
   static Future<void> requestPermission() async {
     debugPrint("🔔 REQUESTING NOTIFICATION PERMISSION");
 
@@ -139,6 +151,18 @@ class NotificationService {
           AndroidFlutterLocalNotificationsPlugin
         >()
         ?.requestNotificationsPermission();
+
+    await _plugin
+        .resolvePlatformSpecificImplementation<
+          IOSFlutterLocalNotificationsPlugin
+        >()
+        ?.requestPermissions(alert: true, badge: true, sound: true);
+
+    await _plugin
+        .resolvePlatformSpecificImplementation<
+          MacOSFlutterLocalNotificationsPlugin
+        >()
+        ?.requestPermissions(alert: true, badge: true, sound: true);
   }
 
   /// 🔔 CREATE CHANNEL
@@ -205,6 +229,16 @@ class NotificationService {
             playSound: true,
 
             enableVibration: true,
+          ),
+          iOS: DarwinNotificationDetails(
+            presentAlert: true,
+            presentBadge: true,
+            presentSound: true,
+          ),
+          macOS: DarwinNotificationDetails(
+            presentAlert: true,
+            presentBadge: true,
+            presentSound: true,
           ),
         ),
 
