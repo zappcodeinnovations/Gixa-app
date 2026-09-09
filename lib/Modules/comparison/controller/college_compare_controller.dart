@@ -1,4 +1,4 @@
-﻿import 'package:Gixa/Modules/comparison/model/college_compare_model.dart';
+import 'package:Gixa/Modules/comparison/model/college_compare_model.dart';
 import 'package:Gixa/Modules/comparison/model/compare_history_model.dart';
 import 'package:Gixa/Modules/comparison/model/save_compare_model.dart';
 import 'package:Gixa/services/compare_collage_services.dart';
@@ -27,6 +27,7 @@ class CollegeCompareController extends GetxController {
     selectedColleges.clear();
     compareResult.value = null;
     lastSavedResult = null;
+    isSaved.value = false;
 
     if (args == null) return;
 
@@ -80,7 +81,8 @@ class CollegeCompareController extends GetxController {
       }
     }
 
-    print('ðŸŸ¢ Selected Colleges NOW ðŸ‘‰ $selectedColleges');
+    isSaved.value = false;
+    print('🟩 Selected Colleges NOW 👉 $selectedColleges');
   }
 
   // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -97,6 +99,7 @@ class CollegeCompareController extends GetxController {
 
     try {
       isLoading.value = true;
+      isSaved.value = false;
 
       print('ðŸš€ Calling Compare API...');
       final result = await CollegeCompareService.compareColleges(
@@ -184,13 +187,13 @@ class CollegeCompareController extends GetxController {
     );
   }
 
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  // â™»ï¸ CLEAR STATE
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ————————————————————————————————————————————
+  // ♻️ CLEAR STATE
+  // ————————————————————————————————————————————
   void clearComparison() {
-    print('â™»ï¸ Clearing comparison state');
+    print('♻️ Clearing comparison state');
     selectedColleges.clear();
     compareResult.value = null;
+    isSaved.value = false;
   }
 }
-

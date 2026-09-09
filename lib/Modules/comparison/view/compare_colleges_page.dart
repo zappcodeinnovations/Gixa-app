@@ -851,10 +851,13 @@ class _CompareCollegesViewState extends State<CompareCollegesView>
         onTap: () {
           if (!saved) {
             controller.saveComparedColleges();
-          }else{
+          } else {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text("Limit reached of save comparisons.",style: TextStyle(color: Colors.redAccent),),
+                content: Text(
+                  "Comparison is already saved.",
+                  style: TextStyle(color: Colors.black),
+                ),
                 behavior: SnackBarBehavior.floating,
               ),
             );
