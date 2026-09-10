@@ -607,11 +607,11 @@ class _PredictionViewState extends State<PredictionView>
   Widget _reservationSection(bool isDark) => Obx(() {
     final profileController = Get.find<ProfileController>();
     final primaryState = profileController.profile.value?.state?.trim() ?? '';
-    final selectedState = controller.selectedState.value.trim();
+    final effectiveState = controller.effectiveState.trim();
 
     if (primaryState.isEmpty ||
-        selectedState.isEmpty ||
-        selectedState.toLowerCase() != primaryState.toLowerCase() ||
+        effectiveState.isEmpty ||
+        effectiveState.toLowerCase() != primaryState.toLowerCase() ||
         (profileController.profile.value?.horizontals ?? []).isEmpty) {
       return const SizedBox.shrink();
     }
@@ -679,9 +679,11 @@ class _PredictionViewState extends State<PredictionView>
       }),
       Obx(() {
         final profileController = Get.find<ProfileController>();
-        final profileState = profileController.profile.value?.state;
+        final profileState = profileController.profile.value?.state?.trim() ??
+            controller.profileController.profile.value?.state?.trim() ??
+            '';
 
-        if (profileState == null || profileState.isEmpty) {
+        if (profileState.isEmpty) {
           return const SizedBox();
         }
 

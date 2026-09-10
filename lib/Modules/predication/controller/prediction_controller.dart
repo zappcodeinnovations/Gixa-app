@@ -24,18 +24,37 @@ import 'package:Gixa/common/widgets/app_snackbar.dart';
 
 class PredictionController extends GetxController {
   /// Syncs PredictionController fields with ProfileController's latest profile
-  void syncWithProfile(dynamic profileController) {
+  void syncWithProfile(dynamic profileController, {bool forceReset = false}) {
     final p = profileController.profile.value;
     if (p == null) return;
     userAir.value = p.allIndiaRank ?? 0;
     userMarks.value = p.neetScore ?? 0;
-    selectedState.value = p.state ?? "Select State";
-    selectedCategory.value = p.category ?? "";
-    selectedCourse.value = "Select Course";
-    selectedSpecialty.value = "Select Specialty";
+
+    // Default to primary state if currently unselected or forced, while keeping all states available
+    if (forceReset || selectedState.value.isEmpty || selectedState.value == "Select State") {
+      final primaryState = p.state?.trim() ?? '';
+      selectedState.value = primaryState.isNotEmpty ? primaryState : "Select State";
+    }
+
+    // Preserve user-selected course if already set and valid; otherwise set from profile
+    if (forceReset || selectedCourse.value.isEmpty || selectedCourse.value == "Select Course") {
+      final profileCourse = p.course?.trim() ?? '';
+      selectedCourse.value = profileCourse.isNotEmpty ? profileCourse : "Select Course";
+    }
+
+    if (selectedCategory.value.isEmpty || forceReset) {
+      selectedCategory.value = p.category ?? "";
+    }
+    if (selectedSpecialty.value.isEmpty || forceReset) {
+      selectedSpecialty.value = "Select Specialty";
+    }
     selectedGender.value = p.gender ?? "M";
-    selectedQuota.value = p.quota ?? "";
-    selectedInstituteType.value = p.instituteType ?? "Both";
+    if (selectedQuota.value.isEmpty || forceReset) {
+      selectedQuota.value = p.quota ?? "";
+    }
+    if (selectedInstituteType.value.isEmpty || forceReset) {
+      selectedInstituteType.value = p.instituteType ?? "Both";
+    }
     if (p.horizontals != null && p.horizontals!.isNotEmpty) {
       selectedHorizontals.clear();
 
@@ -418,11 +437,33 @@ Generating your AI college prediction...
     }
   }
 
+  int _stateCategoriesRequestId = 0;
+
   Future<void> loadStatewiseCategories({
     bool showGlobalNetworkError = false,
     bool forceRefresh = false,
   }) async {
+    final requestId = ++_stateCategoriesRequestId;
     try {
+      // 1. Ensure stateList is populated with ALL states (loaded once, independent of course)
+      if (stateList.isEmpty) {
+        final allStatesResponse = await StateCategoryApiService.getStateCategories(
+          showGlobalNetworkError: false,
+          forceRefresh: forceRefresh,
+        );
+        final List<StateCategoryModel> allStatesData =
+            allStatesResponse['categories'] ?? [];
+        if (allStatesData.isNotEmpty) {
+          stateList.value = allStatesData
+              .map((e) => StateModel(id: 0, name: e.state))
+              .toList();
+          for (var item in allStatesData) {
+            stateCategoryMap[item.state] = item;
+          }
+        }
+      }
+
+      // 2. Fetch specific quotas & categories for selected state and course
       final selectedCourseName = selectedCourse.value;
       int? courseId;
       if (selectedCourseName != 'Select Course' && selectedCourseName.isNotEmpty) {
@@ -430,11 +471,23 @@ Generating your AI college prediction...
         courseId = course?.id;
       }
 
+      final currentState = effectiveState.trim();
+      List<String>? statesParam;
+      if (currentState.isNotEmpty && currentState != 'Select State') {
+        statesParam = [currentState];
+      }
+
       final responseMap = await StateCategoryApiService.getStateCategories(
+        states: statesParam,
         courseId: courseId,
         showGlobalNetworkError: showGlobalNetworkError,
         forceRefresh: forceRefresh,
       );
+
+      // Discard response if a newer request was dispatched while this was in-flight
+      if (requestId != _stateCategoriesRequestId) {
+        return;
+      }
 
       final List<StateCategoryModel> data = responseMap['categories'] ?? [];
       final List rawSelectedCourses = responseMap['selected_courses'] ?? [];
@@ -447,44 +500,23 @@ Generating your AI college prediction...
 
         if (fetchedSelectedCourses.isNotEmpty) {
           courseList.assignAll(fetchedSelectedCourses);
-
-          print(
-            "====== COURSES FROM BACKEND FOR STATE: ${selectedState.value} ======",
-          );
-          for (var c in fetchedSelectedCourses) {
-            print("- ${c.name} (ID: ${c.id})");
-          }
-          print(
-            "===================================================================",
-          );
-
-          final hasSelectedCourse = courseList.any(
-            (course) => course.name == selectedCourse.value,
-          );
-          if (!hasSelectedCourse) {
-            selectedCourse.value = courseList.first.name;
-          }
         }
       }
 
-      stateCategoryMap.clear();
-      if (data.isEmpty) {
-        stateList.clear();
-        categoryList.clear();
-        horizontalCategoryList.clear();
-        selectedState.value = "Select State";
-        return;
-      }
-
-      // Update stateList to only those states returned by the API
-      // StateCategoryModel from statewiseAvailability API does not provide id, so use 0 as a placeholder
-      stateList.value = data
-          .map((e) => StateModel(id: 0, name: e.state))
-          .toList();
-
+      // Update stateCategoryMap with the specific quotas & categories for this state/course
+      // Note: stateList is NEVER modified here, so all states remain visible in the dropdown
       for (var item in data) {
         stateCategoryMap[item.state] = item;
       }
+
+      // Reset selected quota if it's not in the new state/course available quotas
+      final currentQuotas = availableQuotasForSelectedState;
+      if (selectedQuota.value.isNotEmpty &&
+          currentQuotas.isNotEmpty &&
+          !currentQuotas.contains(selectedQuota.value)) {
+        selectedQuota.value = "";
+      }
+
       final matchedState = stateList.firstWhere(
         (state) => state.name.toLowerCase() == selectedState.value.toLowerCase(),
         orElse: () => StateModel(id: 0, name: ''),
@@ -499,7 +531,7 @@ Generating your AI college prediction...
         updateCategoriesByState(effectiveState, preserveExistingCategory: true);
       }
     } catch (e) {
-      print("âŒ Failed to load statewise categories: $e");
+      print("❌ Failed to load statewise categories: $e");
     }
   }
 

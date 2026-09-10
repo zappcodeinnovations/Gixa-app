@@ -1,5 +1,6 @@
 import 'package:Gixa/network/api_client.dart';
 import 'package:Gixa/network/api_endpoints.dart';
+import 'package:Gixa/common/api.dart';
 import 'package:Gixa/Modules/predication/model/state_category_model.dart';
 
 class StateCategoryApiService {
@@ -37,6 +38,11 @@ class StateCategoryApiService {
         ...queryParams,
       }).toString();
 
+      final fullUrl = endpoint.startsWith('http')
+          ? endpoint
+          : '${ApiConstants.baseUrl}$endpoint';
+      print("🌐 FULL API URL FOR SELECT QUOTA => $fullUrl");
+
       final response = await ApiClient.get(
         endpoint,
         showGlobalNetworkError: showGlobalNetworkError,
@@ -46,7 +52,7 @@ class StateCategoryApiService {
         ),
       );
 
-      print("📥 Statewise Categories Response: $response");
+      print("📥 SELECT QUOTA API RESPONSE => $response");
 
       if (response['success'] == true) {
         final List data = response['data'] ?? [];

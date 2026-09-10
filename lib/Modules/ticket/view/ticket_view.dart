@@ -1339,7 +1339,7 @@ class _AttachmentSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Obx(() {
-      final files = controller.selectedAttachments.value;
+      final files = controller.selectedAttachments;
       if (files.isEmpty) {
         return GestureDetector(
           onTap: onPick,

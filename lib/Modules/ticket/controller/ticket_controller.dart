@@ -66,6 +66,41 @@ class TicketController extends GetxController {
     super.onInit();
     subject.value = technicalIssueOption;
     fetchTickets();
+    _checkLostData();
+  }
+
+  Future<void> _checkLostData() async {
+    try {
+      final response = await ImagePicker().retrieveLostData();
+      if (response.isEmpty) return;
+
+      if (response.file != null) {
+        final file = File(response.file!.path);
+        if (await file.exists()) {
+          final fileSize = await file.length();
+          if (fileSize <= 500 * 1024) {
+            addAttachment(file);
+          } else {
+            AppSnackbar.show(
+              'Error',
+              'Recovered image exceeds the 500 KB limit.',
+            );
+          }
+        }
+      } else if (response.files != null && response.files!.isNotEmpty) {
+        for (final pickedFile in response.files!) {
+          final file = File(pickedFile.path);
+          if (await file.exists()) {
+            final fileSize = await file.length();
+            if (fileSize <= 500 * 1024) {
+              addAttachment(file);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      print("❌ RETRIEVE LOST DATA ERROR => $e");
+    }
   }
 
   int? get _studentId => Get.find<ProfileController>().profile.value?.user.id;

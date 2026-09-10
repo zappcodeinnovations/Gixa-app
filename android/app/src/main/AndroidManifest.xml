@@ -20,7 +20,8 @@
     <application
         android:label="Gixa"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:largeHeap="true">
 
         <activity
             android:name=".MainActivity"
