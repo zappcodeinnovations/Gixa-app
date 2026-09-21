@@ -257,8 +257,9 @@ class _SheetScaffold extends StatelessWidget {
 
 class LoginBottomSheet extends StatefulWidget {
   final VoidCallback? onAuthenticated;
+  final String? initialPhone;
 
-  const LoginBottomSheet({super.key, this.onAuthenticated});
+  const LoginBottomSheet({super.key, this.onAuthenticated, this.initialPhone});
 
   @override
   State<LoginBottomSheet> createState() => _LoginBottomSheetState();
@@ -275,7 +276,13 @@ class _LoginBottomSheetState extends State<LoginBottomSheet> {
     _otpController = Get.isRegistered<OtpController>()
         ? Get.find<OtpController>()
         : Get.put(OtpController());
-    _otpController.reset();
+
+    final phoneToUse = widget.initialPhone ?? _otpController.mobileNumber.value;
+    if (phoneToUse.isNotEmpty) {
+      _phoneController.text = phoneToUse;
+    } else {
+      _otpController.reset();
+    }
   }
 
   @override
@@ -696,6 +703,7 @@ class _OtpVerifyBottomSheetState extends State<OtpVerifyBottomSheet> {
           Center(
             child: TextButton(
               onPressed: () async {
+                final currentPhone = _otpController.mobileNumber.value;
                 final onAuth = widget.onAuthenticated;
                 closeAuthBottomSheet();
                 await Future.delayed(const Duration(milliseconds: 350));
@@ -703,6 +711,7 @@ class _OtpVerifyBottomSheetState extends State<OtpVerifyBottomSheet> {
                 showAuthBottomSheet(
                   LoginBottomSheet(
                     onAuthenticated: onAuth,
+                    initialPhone: currentPhone,
                   ),
                 );
               },

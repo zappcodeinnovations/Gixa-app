@@ -1,6 +1,5 @@
 import 'package:Gixa/Modules/CollageDetails/model/college_cutoff_model.dart';
 import 'package:Gixa/Modules/Profile/controllers/profile_controller.dart';
-import 'package:Gixa/Modules/CollageDetails/controller/collage_detail_controller.dart';
 import 'package:Gixa/network/app_exception.dart';
 import 'package:Gixa/services/college_api_service.dart';
 import 'package:get/get.dart';
@@ -80,7 +79,14 @@ class CollegeCutoffController extends GetxController {
       _seedFilters();
       _updateSelectedRecords();
     } on AppException catch (e) {
-      errorMessage.value = e.message;
+      if (e.message.contains('<!DOCTYPE') ||
+          e.message.contains('<html') ||
+          e.message.contains('404')) {
+        errorMessage.value =
+            'No cutoff data available for this college (API 404 Not Found).';
+      } else {
+        errorMessage.value = e.message;
+      }
     } catch (_) {
       errorMessage.value = 'Unable to load cutoff data right now.';
     } finally {

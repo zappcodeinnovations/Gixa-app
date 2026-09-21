@@ -330,33 +330,7 @@ class _CompareCollegesViewState extends State<CompareCollegesView>
     );
   }
 
-  Widget _chanceTag(String chance) {
-    final c = chance.toLowerCase();
-    final Color color;
-    if (c.contains("high")) {
-      color = _C.green;
-    } else if (c.contains("moderate")) {
-      color = _C.amber;
-    } else {
-      color = _C.red;
-    }
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        chance,
-        style: TextStyle(
-          color: color,
-          fontWeight: FontWeight.w700,
-          fontSize: 11,
-        ),
-      ),
-    );
-  }
 
   // ─── QUICK STATS ─────────────────────────────────────────
   Widget _buildQuickStats(List<CollegeComparison> colleges, bool isDark) {
@@ -365,7 +339,7 @@ class _CompareCollegesViewState extends State<CompareCollegesView>
         e.contactEmail!.trim().isNotEmpty &&
         e.contactEmail != "N/A");
 
-    final rows = [
+    final allRows = [
       _StatRowData(
         Icons.location_on_rounded,
         "Location",
@@ -418,6 +392,19 @@ class _CompareCollegesViewState extends State<CompareCollegesView>
           const Color(0xFF64748B),
         ),
     ];
+
+    // Hide row if both/all values are empty or "N/A"
+    final rows = allRows.where((row) {
+      return row.values.any((v) {
+        final trimmed = v.trim();
+        return trimmed.isNotEmpty &&
+            trimmed != "N/A" &&
+            trimmed != "null" &&
+            trimmed != "-";
+      });
+    }).toList();
+
+    if (rows.isEmpty) return const SizedBox.shrink();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

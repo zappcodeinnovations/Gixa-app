@@ -32,6 +32,9 @@ class LoginWithOtpPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (phoneController.text.isEmpty && controller.mobileNumber.value.isNotEmpty) {
+      phoneController.text = controller.mobileNumber.value;
+    }
     final size = MediaQuery.of(context).size;
 
     return Scaffold(

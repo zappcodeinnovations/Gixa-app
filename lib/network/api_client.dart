@@ -174,6 +174,11 @@ class ApiClient {
     }
 
     if (data is String && data.trim().isNotEmpty) {
+      if (data.contains('<!DOCTYPE html>') ||
+          data.contains('<html') ||
+          data.contains('404 - Gixa')) {
+        return 'Data unavailable for this selection (Server returned 404 Not Found).';
+      }
       return data;
     }
 
