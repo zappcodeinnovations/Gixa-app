@@ -10,6 +10,7 @@ import 'package:Gixa/Modules/subscription/model/subscription_plan.dart'
     as plan_models;
 import 'package:Gixa/Modules/subscription/model/subscription_purchase_model.dart';
 import 'package:Gixa/Modules/subscription/model/subscription_state_model.dart';
+import 'package:Gixa/Modules/subscription/model/subscription_specialty_model.dart';
 import 'package:Gixa/network/api_client.dart';
 import 'package:Gixa/network/app_exception.dart';
 import 'package:Gixa/services/subscription_plan_services.dart';
@@ -66,6 +67,24 @@ class SubscriptionController extends GetxController {
   final availableStates = <StateItem>[].obs;
   final availableCourses = <AvailableCourse>[].obs;
   final isStateLoading = false.obs;
+
+  final addonSpecialtyCourses = <SpecialtyAddonCourse>[].obs;
+  final selectedSpecialtyAddonIds = <int>[].obs;
+  final isSpecialtyLoading = false.obs;
+
+  Future<void> fetchSpecialtiesAddon({bool forceRefresh = false}) async {
+    try {
+      isSpecialtyLoading.value = true;
+      final data = await SubscriptionApi.getSubscriptionSpecialties(forceRefresh: forceRefresh);
+      if (data != null) {
+        addonSpecialtyCourses.assignAll(data.courses);
+      }
+    } catch (e) {
+      print("Error fetching specialty addons: $e");
+    } finally {
+      isSpecialtyLoading.value = false;
+    }
+  }
   @override
   void onInit() {
     super.onInit();

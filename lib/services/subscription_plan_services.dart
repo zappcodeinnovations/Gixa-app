@@ -6,6 +6,7 @@ import 'package:Gixa/network/api_endpoints.dart';
 import 'package:Gixa/Modules/subscription/model/subscription_plan.dart';
 import 'package:Gixa/Modules/subscription/model/subscription_purchase_model.dart';
 import 'package:Gixa/Modules/subscription/model/verify_payment_response.dart';
+import 'package:Gixa/Modules/subscription/model/subscription_specialty_model.dart';
 import 'package:Gixa/network/app_exception.dart';
 
 class SubscriptionApi {
@@ -157,6 +158,27 @@ class SubscriptionApi {
 
     if (response['status'] != true) {
       throw Exception(response['message'] ?? "Failed to save states");
+    }
+  }
+
+  /// 🔹 GET SUBSCRIPTION SPECIALTIES
+  static Future<SubscriptionSpecialtyData?> getSubscriptionSpecialties({
+    bool forceRefresh = false,
+  }) async {
+    try {
+      final response = await ApiClient.get(
+        ApiEndpoints.subscriptionSpecialties,
+        requestPolicy: RequestPolicy(
+          ttl: const Duration(minutes: 5),
+          forceRefresh: forceRefresh,
+        ),
+      );
+      print("🔥 SPECIALTIES API RESPONSE: $response");
+      final parsed = SubscriptionSpecialtyResponse.fromJson(response);
+      return parsed.data;
+    } catch (e) {
+      print("GET SPECIALTIES ERROR => $e");
+      return null;
     }
   }
 }

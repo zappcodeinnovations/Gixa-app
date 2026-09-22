@@ -9,6 +9,7 @@ class StateCategoryApiService {
   static Future<Map<String, dynamic>> getStateCategories({
     List<String>? states,
     int? courseId,
+    int? specialtyId,
     bool showGlobalNetworkError = true,
     bool forceRefresh = false,
   }) async {
@@ -30,6 +31,10 @@ class StateCategoryApiService {
 
       if (courseId != null) {
         queryParams['course_id'] = courseId.toString();
+      }
+
+      if (specialtyId != null) {
+        queryParams['specialty_id'] = specialtyId.toString();
       }
 
       final uri = Uri.parse(ApiEndpoints.statewiseAvailability);

@@ -71,7 +71,7 @@ class _CategoryListState extends State<CategoryList>
       ),
       _CategoryItem(
         assetPath: 'assets/icons/support.png',
-        label: 'Addmision\nSupport',
+        label: 'Admission\nSupport',
         lightBg: const Color.fromARGB(255, 242, 214, 172),
         darkBg: const Color.fromARGB(255, 242, 214, 172),
         onTap: widget.onHelpTap,

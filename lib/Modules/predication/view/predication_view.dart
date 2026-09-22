@@ -9,7 +9,9 @@ import 'package:Gixa/common/widgets/app_snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shake/shake.dart';
+import 'package:Gixa/commonmodels/specialty_model.dart';
 import 'package:Gixa/Modules/subscription/widgets/course_selection_bottom_sheet.dart';
+import 'package:Gixa/Modules/subscription/widgets/specialty_selection_bottom_sheet.dart';
 import '../controller/prediction_controller.dart';
 
 class PredictionView extends StatefulWidget {
@@ -814,11 +816,14 @@ class _PredictionViewState extends State<PredictionView>
                 if (v == null) return;
                 if (v == 'Select Course') {
                   controller.selectedCourse.value = 'Select Course';
+                  controller.selectedSpecialty.value = 'Select Specialty';
+                  controller.selectedSpecialtyId.value = null;
                 } else {
                   controller.selectedCourse.value = v;
                   controller.courseError.value = '';
                   // Reset specialty when course changes
                   controller.selectedSpecialty.value = 'Select Specialty';
+                  controller.selectedSpecialtyId.value = null;
                   
                   // Re-fetch quotas for new course
                   controller.loadStatewiseCategories(forceRefresh: true);
@@ -829,6 +834,9 @@ class _PredictionViewState extends State<PredictionView>
             ),
             TextButton.icon(
               onPressed: () {
+                final subCtrl = Get.isRegistered<SubscriptionController>()
+                    ? Get.find<SubscriptionController>()
+                    : Get.put(SubscriptionController());
                 final activePlan = subCtrl.activePlan.value;
                 if (activePlan == null) {
                   AppSnackbar.show('No Active Plan', 'Please purchase a base plan first to add courses.');
@@ -858,6 +866,7 @@ class _PredictionViewState extends State<PredictionView>
         final profileController = Get.find<ProfileController>();
 
         final selectedCourseName = controller.selectedCourse.value;
+        List<SpecialtyModel> availableSpecialties = [];
         List<String> specialtyItems = ['Select Specialty'];
 
         if (selectedCourseName != 'Select Course' &&
@@ -872,9 +881,11 @@ class _PredictionViewState extends State<PredictionView>
                 if (userRegisteredSpecialty != null &&
                     userRegisteredSpecialty.isNotEmpty) {
                   if (s.name == userRegisteredSpecialty) {
+                    availableSpecialties.add(s);
                     specialtyItems.add(s.name);
                   }
                 } else {
+                  availableSpecialties.add(s);
                   specialtyItems.add(s.name);
                 }
               }
@@ -886,6 +897,7 @@ class _PredictionViewState extends State<PredictionView>
         if (specialtyItems.length <= 1) return const SizedBox.shrink();
 
         return Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             const SizedBox(height: 10),
             _aiDropdown(
@@ -900,8 +912,37 @@ class _PredictionViewState extends State<PredictionView>
               onChanged: (v) {
                 if (v == null) return;
                 controller.selectedSpecialty.value = v;
+
+                final match = availableSpecialties.firstWhereOrNull((s) => s.name == v);
+                if (match != null) {
+                  controller.selectedSpecialtyId.value = match.id;
+                } else {
+                  controller.selectedSpecialtyId.value = null;
+                }
+
+                // Re-fetch quotas for selected specialty
+                controller.loadStatewiseCategories(forceRefresh: true);
               },
               isDark: isDark,
+            ),
+            TextButton.icon(
+              onPressed: () {
+                SpecialtySelectionBottomSheet.show(context);
+              },
+              icon: const Icon(Icons.add_circle_outline, size: 14, color: _indigo),
+              label: const Text(
+                'Add Specialty',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: _indigo,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
             ),
           ],
         );

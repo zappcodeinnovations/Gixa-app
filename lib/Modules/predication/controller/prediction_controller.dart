@@ -18,7 +18,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:Gixa/Modules/subscription/controller/subscription_controller.dart';
-import '../model/predication_model.dart';
+import 'package:Gixa/Modules/predication/model/predication_model.dart';
 import '../view/ai_prediction_result_view.dart';
 import 'package:Gixa/common/widgets/app_snackbar.dart';
 
@@ -316,6 +316,7 @@ Generating your AI college prediction...
   var selectedCategory = "".obs;
   var selectedCourse = "Select Course".obs;
   var selectedSpecialty = "Select Specialty".obs;
+  var selectedSpecialtyId = RxnInt();
 
   var roundsList = <RoundModel>[].obs;
   var selectedRound = "".obs;
@@ -463,12 +464,21 @@ Generating your AI college prediction...
         }
       }
 
-      // 2. Fetch specific quotas & categories for selected state and course
+      // 2. Fetch specific quotas & categories for selected state, course and specialty
       final selectedCourseName = selectedCourse.value;
       int? courseId;
+      int? specialtyId;
+
       if (selectedCourseName != 'Select Course' && selectedCourseName.isNotEmpty) {
         final course = currentAvailableCourses.firstWhereOrNull((c) => c.name == selectedCourseName);
         courseId = course?.id;
+
+        if (selectedSpecialty.value.isNotEmpty &&
+            selectedSpecialty.value != 'Select Specialty' &&
+            course != null) {
+          final spec = course.specialties.firstWhereOrNull((s) => s.name == selectedSpecialty.value);
+          specialtyId = spec?.id ?? selectedSpecialtyId.value;
+        }
       }
 
       final currentState = effectiveState.trim();
@@ -480,6 +490,7 @@ Generating your AI college prediction...
       final responseMap = await StateCategoryApiService.getStateCategories(
         states: statesParam,
         courseId: courseId,
+        specialtyId: specialtyId,
         showGlobalNetworkError: showGlobalNetworkError,
         forceRefresh: forceRefresh,
       );

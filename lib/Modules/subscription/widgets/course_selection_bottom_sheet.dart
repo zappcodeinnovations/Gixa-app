@@ -205,7 +205,13 @@ class CourseSelectionBottomSheet {
 
               // Continue button
               Obx(() {
-                final isEnabled = true;
+                final selectedAddonCourses = controller.selectedCourses
+                    .where((id) => !controller.lockedCourses.contains(id))
+                    .toList();
+                final isEnabled = isAddonOnly
+                    ? selectedAddonCourses.isNotEmpty
+                    : controller.selectedCourses.isNotEmpty;
+
                 final preview = controller.previewFor(plan.id);
                 
                 String displayAmount = plan.amount;
@@ -235,7 +241,7 @@ class CourseSelectionBottomSheet {
                 }
 
                 return GradientButton(
-                  label: 'Pay ₹$displayAmount',
+                  label: isEnabled ? 'Pay ₹$displayAmount' : 'Select a Course',
                   isLoading: false,
                   onTap: isEnabled
                       ? () async {

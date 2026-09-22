@@ -8,7 +8,7 @@ import 'package:Gixa/Modules/subscription/view/subscription_plan_page.dart';
 import 'package:Gixa/routes/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../model/predication_model.dart';
+import 'package:Gixa/Modules/predication/model/predication_model.dart';
 import 'package:Gixa/common/widgets/app_snackbar.dart';
 
 class AiPredictionResultView extends StatefulWidget {
