@@ -33,9 +33,9 @@ class CreateOrderData {
 
   factory CreateOrderData.fromJson(Map<String, dynamic> json) {
     return CreateOrderData(
-      subscriptionId: json['subscription_id'] ?? 0,
-      razorpayOrderId: json['razorpay_order_id'] ?? '',
-      finalAmount: json['final_amount']?.toString() ?? '0',
+      subscriptionId: json['subscription_id'] ?? json['id'] ?? 0,
+      razorpayOrderId: json['razorpay_order_id'] ?? json['order_id'] ?? '',
+      finalAmount: json['final_amount']?.toString() ?? json['amount']?.toString() ?? '0',
     );
   }
 }

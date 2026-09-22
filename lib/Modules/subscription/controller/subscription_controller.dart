@@ -70,6 +70,7 @@ class SubscriptionController extends GetxController {
 
   final addonSpecialtyCourses = <SpecialtyAddonCourse>[].obs;
   final selectedSpecialtyAddonIds = <int>[].obs;
+  final purchasedSpecialtyNames = <String>[].obs;
   final isSpecialtyLoading = false.obs;
 
   Future<void> fetchSpecialtiesAddon({bool forceRefresh = false}) async {
@@ -415,7 +416,11 @@ class SubscriptionController extends GetxController {
   // REST OF CONTROLLER — unchanged
   // ─────────────────────────────────────────────────────────────────────────
 
-  Future<bool> createOrderAndPay(int planId, {bool isAddonOnly = false}) async {
+  Future<bool> createOrderAndPay(
+    int planId, {
+    bool isAddonOnly = false,
+    List<int>? specialtyIds,
+  }) async {
     if (isCreatingOrder.value) return false;
 
     isCreatingOrder.value = true;
@@ -443,18 +448,50 @@ class SubscriptionController extends GetxController {
       int extraDays = 0;
       String? appliedCouponCode = preview?.couponApplied;
 
+      List<int>? addonCourseIds;
+      List<int>? addonSpecialtyIds;
+
+      if (isAddonOnly && specialtyIds != null && specialtyIds.isNotEmpty) {
+        int courseId = 0;
+        for (final course in addonSpecialtyCourses) {
+          if (course.specialties.any((s) => specialtyIds.contains(s.id))) {
+            courseId = course.courseId;
+            break;
+          }
+        }
+
+        final activeSub = _historyController.historyList.firstWhereOrNull((h) => h.isActive);
+        final subId = activeSub?.id ?? planId;
+
+        final orderRes = await SubscriptionApi.addSpecialtyOrder(
+          subscriptionId: subId,
+          courseId: courseId,
+          specialtyIds: specialtyIds,
+        );
+
+        _currentOrder = orderRes.data;
+        final parsedAmt = _parseAmount(orderRes.data.finalAmount);
+        return await _openRazorpay(parsedAmt > 0 ? parsedAmt : 0);
+      }
+
       if (isAddonOnly) {
         int coursesAmount = 0;
-        for (final courseId in selectedCourses) {
-          if (lockedCourses.contains(courseId)) continue;
-          final course = availableCourses.firstWhereOrNull((c) => (c.id != -1 ? c.id : c.courseId) == courseId);
+        final newlySelected = selectedCourses
+            .where((id) => !lockedCourses.contains(id))
+            .toList();
+        for (final courseId in newlySelected) {
+          final course = availableCourses.firstWhereOrNull(
+            (c) => (c.id != -1 ? c.id : c.courseId) == courseId,
+          );
           if (course != null) {
             coursesAmount += course.amount.round();
           }
         }
         baseAmount = coursesAmount;
         finalAmount = coursesAmount;
+        addonCourseIds = newlySelected;
       } else {
+        addonCourseIds = selectedCourses.toList();
         // Fetch fresh preview to include selected states and courses
         final freshPreviewRes = await SubscriptionApi.purchaseSubscription(
           planId: planId,
@@ -481,8 +518,10 @@ class SubscriptionController extends GetxController {
         finalAmount: finalAmount,
         couponCode: appliedCouponCode,
         extraDays: extraDays,
-        stateIds: selectedStates.toList(),
-        courseIds: selectedCourses.toList(),
+        stateIds: isAddonOnly ? null : selectedStates.toList(),
+        courseIds: addonCourseIds,
+        specialtyIds: addonSpecialtyIds,
+        isAddon: isAddonOnly,
       );
 
       _currentOrder = orderRes.data;
@@ -671,6 +710,19 @@ class SubscriptionController extends GetxController {
         );
       }
 
+      if (selectedSpecialtyAddonIds.isNotEmpty) {
+        for (final course in addonSpecialtyCourses) {
+          for (final spec in course.specialties) {
+            if (selectedSpecialtyAddonIds.contains(spec.id)) {
+              if (!purchasedSpecialtyNames.contains(spec.specialtyName)) {
+                purchasedSpecialtyNames.add(spec.specialtyName);
+              }
+            }
+          }
+        }
+        selectedSpecialtyAddonIds.clear();
+      }
+
       selectedStates.clear();
       selectedCourses.clear();
 
@@ -678,6 +730,10 @@ class SubscriptionController extends GetxController {
       if (userId != null) {
         await _historyController.ensureLoaded(forceRefresh: true);
         await loadActivePlanFromHistory(userId, forceRefresh: true);
+      }
+
+      if (Get.isRegistered<ProfileController>()) {
+        Get.find<ProfileController>().fetchProfile(force: true);
       }
 
       Get.dialog(const PaymentSuccessDialog(), barrierDismissible: false);
@@ -690,6 +746,7 @@ class SubscriptionController extends GetxController {
   void _onPaymentError(PaymentFailureResponse res) {
     selectedStates.clear();
     selectedCourses.clear();
+    selectedSpecialtyAddonIds.clear();
 
     String message;
 

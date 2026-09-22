@@ -470,14 +470,34 @@ Generating your AI college prediction...
       int? specialtyId;
 
       if (selectedCourseName != 'Select Course' && selectedCourseName.isNotEmpty) {
-        final course = currentAvailableCourses.firstWhereOrNull((c) => c.name == selectedCourseName);
-        courseId = course?.id;
+        final course = currentAvailableCourses.firstWhereOrNull(
+          (c) => c.name.trim().toLowerCase() == selectedCourseName.trim().toLowerCase(),
+        );
+        courseId = course?.id ??
+            profileController.selectedCourseId.value ??
+            profileController.profile.value?.courseId ??
+            profileController.profile.value?.predictionCourseSpecialties?.firstWhereOrNull(
+              (c) => c.courseName.trim().toLowerCase() == selectedCourseName.trim().toLowerCase(),
+            )?.courseId;
 
-        if (selectedSpecialty.value.isNotEmpty &&
-            selectedSpecialty.value != 'Select Specialty' &&
-            course != null) {
-          final spec = course.specialties.firstWhereOrNull((s) => s.name == selectedSpecialty.value);
-          specialtyId = spec?.id ?? selectedSpecialtyId.value;
+        specialtyId = selectedSpecialtyId.value;
+        if (specialtyId == null &&
+            selectedSpecialty.value.isNotEmpty &&
+            selectedSpecialty.value != 'Select Specialty') {
+          if (course != null) {
+            final spec = course.specialties.firstWhereOrNull((s) => s.name == selectedSpecialty.value);
+            specialtyId = spec?.id;
+          }
+          if (specialtyId == null) {
+            final profileSpecs = profileController.profile.value?.predictionCourseSpecialties ?? [];
+            for (final cs in profileSpecs) {
+              final spec = cs.specialties.firstWhereOrNull((s) => s.specialtyName == selectedSpecialty.value);
+              if (spec != null) {
+                specialtyId = spec.id;
+                break;
+              }
+            }
+          }
         }
       }
 

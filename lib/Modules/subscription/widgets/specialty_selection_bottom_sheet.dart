@@ -38,10 +38,19 @@ class SpecialtySelectionBottomSheet {
         ? Get.find<SubscriptionController>()
         : Get.put(SubscriptionController());
 
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final activePlan = controller.activePlan.value;
+    if (activePlan == null) {
+      AppSnackbar.show(
+        'No Active Plan',
+        'Please purchase a base plan first to add specialties.',
+      );
+      return;
+    }
 
     // Fetch latest specialty options
     controller.fetchSpecialtiesAddon();
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     await showModalBottomSheet(
       context: context,
@@ -117,32 +126,18 @@ class SpecialtySelectionBottomSheet {
                   }
 
                   final courseList = controller.addonSpecialtyCourses;
-                  if (courseList.isEmpty) {
+                  final hasSpecialties = courseList.any((c) => c.specialties.isNotEmpty);
+
+                  if (courseList.isEmpty || !hasSpecialties) {
                     return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.local_hospital_outlined,
-                            size: 48,
-                            color: Colors.grey.shade400,
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            'No specialties available',
-                            style: body(
-                              14,
-                              color: isDark
-                                  ? Colors.grey.shade400
-                                  : Colors.grey.shade600,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          TextButton(
-                            onPressed: () => controller.fetchSpecialtiesAddon(forceRefresh: true),
-                            child: const Text('Retry'),
-                          ),
-                        ],
+                      child: Text(
+                        'No specialties available',
+                        style: body(
+                          14,
+                          color: isDark
+                              ? Colors.grey.shade400
+                              : Colors.grey.shade600,
+                        ),
                       ),
                     );
                   }
@@ -298,6 +293,7 @@ class SpecialtySelectionBottomSheet {
                           await controller.createOrderAndPay(
                             activePlan.id,
                             isAddonOnly: true,
+                            specialtyIds: selectedIds.toList(),
                           );
                           Get.back();
                         }

@@ -864,37 +864,79 @@ class _PredictionViewState extends State<PredictionView>
       }),
       Obx(() {
         final profileController = Get.find<ProfileController>();
+        final subCtrl = Get.isRegistered<SubscriptionController>()
+            ? Get.find<SubscriptionController>()
+            : Get.put(SubscriptionController());
 
         final selectedCourseName = controller.selectedCourse.value;
         List<SpecialtyModel> availableSpecialties = [];
         List<String> specialtyItems = ['Select Specialty'];
+        bool courseHasSpecialties = false;
 
         if (selectedCourseName != 'Select Course' &&
             selectedCourseName.isNotEmpty) {
           final targetList = controller.currentAvailableCourses;
-          final userRegisteredSpecialty =
-              profileController.profile.value?.specialty;
+          final p = profileController.profile.value;
+          final userRegisteredSpecialty = p?.specialty;
+          final purchasedSpecialties = subCtrl.purchasedSpecialtyNames;
+          final profileCourseSpecs = p?.predictionCourseSpecialties ?? [];
 
-          for (final course in targetList) {
-            if (course.name == selectedCourseName) {
-              for (final s in course.specialties) {
-                if (userRegisteredSpecialty != null &&
-                    userRegisteredSpecialty.isNotEmpty) {
-                  if (s.name == userRegisteredSpecialty) {
+          // 1. Check if backend returned explicit prediction_course_specialties for this course
+          final matchedProfileCourse = profileCourseSpecs.firstWhereOrNull(
+            (c) => c.courseName.trim().toLowerCase() == selectedCourseName.trim().toLowerCase(),
+          );
+
+          if (matchedProfileCourse != null && matchedProfileCourse.specialties.isNotEmpty) {
+            courseHasSpecialties = true;
+            for (final specItem in matchedProfileCourse.specialties) {
+              final model = SpecialtyModel(id: specItem.id, name: specItem.specialtyName);
+              if (!specialtyItems.contains(specItem.specialtyName)) {
+                availableSpecialties.add(model);
+                specialtyItems.add(specItem.specialtyName);
+              }
+            }
+          } else {
+            // 2. Fallback to master course list & registered/purchased specialties
+            for (final course in targetList) {
+              if (course.name.trim().toLowerCase() == selectedCourseName.trim().toLowerCase()) {
+                if (course.specialties.isNotEmpty) {
+                  courseHasSpecialties = true;
+                }
+
+                for (final s in course.specialties) {
+                  final isRegistered = userRegisteredSpecialty != null &&
+                      userRegisteredSpecialty.isNotEmpty &&
+                      (s.name.trim().toLowerCase() == userRegisteredSpecialty.trim().toLowerCase() ||
+                       s.name.toLowerCase().contains(userRegisteredSpecialty.toLowerCase()) ||
+                       userRegisteredSpecialty.toLowerCase().contains(s.name.toLowerCase()));
+                  final isPurchased = purchasedSpecialties.any(
+                    (p) => p.trim().toLowerCase() == s.name.trim().toLowerCase(),
+                  );
+
+                  if (userRegisteredSpecialty == null || userRegisteredSpecialty.isEmpty) {
+                    availableSpecialties.add(s);
+                    specialtyItems.add(s.name);
+                  } else if (isRegistered || isPurchased) {
                     availableSpecialties.add(s);
                     specialtyItems.add(s.name);
                   }
-                } else {
-                  availableSpecialties.add(s);
-                  specialtyItems.add(s.name);
                 }
+
+                // Fallback: If user has no registered/purchased specialty matching this specific course,
+                // show all course specialties so user can select their branch
+                if (availableSpecialties.isEmpty && course.specialties.isNotEmpty) {
+                  for (final s in course.specialties) {
+                    availableSpecialties.add(s);
+                    specialtyItems.add(s.name);
+                  }
+                }
+                break;
               }
-              break;
             }
           }
         }
 
-        if (specialtyItems.length <= 1) return const SizedBox.shrink();
+        if (!courseHasSpecialties) return const SizedBox.shrink();
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.end,
@@ -927,6 +969,14 @@ class _PredictionViewState extends State<PredictionView>
             ),
             TextButton.icon(
               onPressed: () {
+                final activePlan = subCtrl.activePlan.value;
+                if (activePlan == null) {
+                  AppSnackbar.show(
+                    'No Active Plan',
+                    'Please purchase a base plan first to add specialties.',
+                  );
+                  return;
+                }
                 SpecialtySelectionBottomSheet.show(context);
               },
               icon: const Icon(Icons.add_circle_outline, size: 14, color: _indigo),

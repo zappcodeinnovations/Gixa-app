@@ -10,12 +10,18 @@ class SubscriptionSpecialtyResponse {
   });
 
   factory SubscriptionSpecialtyResponse.fromJson(Map<String, dynamic> json) {
+    SubscriptionSpecialtyData? parsedData;
+    final rawData = json['data'];
+    if (rawData is Map<String, dynamic>) {
+      parsedData = SubscriptionSpecialtyData.fromJson(rawData);
+    } else if (rawData is List) {
+      parsedData = SubscriptionSpecialtyData.fromList(rawData);
+    }
+
     return SubscriptionSpecialtyResponse(
       status: json['status'] == true,
       message: json['message']?.toString(),
-      data: json['data'] != null && json['data'] is Map<String, dynamic>
-          ? SubscriptionSpecialtyData.fromJson(json['data'])
-          : null,
+      data: parsedData,
     );
   }
 }
@@ -26,9 +32,18 @@ class SubscriptionSpecialtyData {
   SubscriptionSpecialtyData({required this.courses});
 
   factory SubscriptionSpecialtyData.fromJson(Map<String, dynamic> json) {
-    final rawCourses = json['courses'] as List? ?? [];
+    final rawCourses = (json['courses'] ?? json['specialties']) as List? ?? [];
     return SubscriptionSpecialtyData(
       courses: rawCourses
+          .whereType<Map<String, dynamic>>()
+          .map((c) => SpecialtyAddonCourse.fromJson(c))
+          .toList(),
+    );
+  }
+
+  factory SubscriptionSpecialtyData.fromList(List rawList) {
+    return SubscriptionSpecialtyData(
+      courses: rawList
           .whereType<Map<String, dynamic>>()
           .map((c) => SpecialtyAddonCourse.fromJson(c))
           .toList(),

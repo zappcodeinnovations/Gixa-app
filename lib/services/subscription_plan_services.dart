@@ -73,6 +73,8 @@ class SubscriptionApi {
     int extraDays = 0,
     List<int>? stateIds,
     List<int>? courseIds,
+    List<int>? specialtyIds,
+    bool isAddon = false,
   }) async {
     final response = await ApiClient.post(
       ApiEndpoints.subscriptionCreateOrder,
@@ -84,9 +86,29 @@ class SubscriptionApi {
         "extra_days": extraDays,
         if (stateIds != null && stateIds.isNotEmpty) "state_ids": stateIds,
         if (courseIds != null && courseIds.isNotEmpty) "course_ids": courseIds,
+        if (specialtyIds != null && specialtyIds.isNotEmpty) "specialty_ids": specialtyIds,
+        if (isAddon) "is_addon": true,
       },
     );
     print("[API] createOrder response: $response");
+    return CreateOrderResponse.fromJson(response);
+  }
+
+  /// 🩺 CREATE SPECIALTY ADDON ORDER
+  static Future<CreateOrderResponse> addSpecialtyOrder({
+    required int subscriptionId,
+    required int courseId,
+    required List<int> specialtyIds,
+  }) async {
+    final response = await ApiClient.post(
+      ApiEndpoints.subscriptionAddSpecialty,
+      {
+        "subscription_id": subscriptionId,
+        "course_id": courseId,
+        "specialty_ids": specialtyIds,
+      },
+    );
+    print("[API] addSpecialtyOrder response: $response");
     return CreateOrderResponse.fromJson(response);
   }
 

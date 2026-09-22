@@ -55,6 +55,8 @@ class ApiEndpoints {
       '/api/student/subscription/verify-payment/';
   static const String subscriptionSpecialties =
       '/api/student/subscription/specialties/';
+  static const String subscriptionAddSpecialty =
+      '/api/student/subscription/add-specialty/';
   static String subscriptionHistory(int userId) =>
       "/api/subscriptions/user/$userId/";
   //Documents

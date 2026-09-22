@@ -37,12 +37,14 @@ class ProfileModel {
   final String? disabilityDetails;
   final bool? physicalDisability;
   final List<String>? predictionCourses;
+  final List<PredictionCourseSpecialty>? predictionCourseSpecialties;
   final String? courseLevel;
 
   ProfileModel({
     required this.id,
     required this.user,
     this.predictionCourses,
+    this.predictionCourseSpecialties,
     this.allIndiaRank,
     this.allIndiaRankUpdatedOnce,
     this.neetScore,
@@ -143,6 +145,10 @@ class ProfileModel {
       predictionCourses: (json['prediction_courses'] as List<dynamic>?)
           ?.map((e) => e.toString())
           .toList(),
+      predictionCourseSpecialties: (json['prediction_course_specialties'] as List<dynamic>?)
+          ?.whereType<Map<String, dynamic>>()
+          .map((e) => PredictionCourseSpecialty.fromJson(e))
+          .toList(),
       courseLevel: json['course_level']?.toString(),
     );
   }
@@ -188,5 +194,48 @@ class ProfileModel {
 
     final text = value.toString().trim();
     return text.isEmpty ? null : text;
+  }
+}
+
+class PredictionCourseSpecialty {
+  final int courseId;
+  final String courseName;
+  final List<PredictionSpecialtyItem> specialties;
+
+  PredictionCourseSpecialty({
+    required this.courseId,
+    required this.courseName,
+    required this.specialties,
+  });
+
+  factory PredictionCourseSpecialty.fromJson(Map<String, dynamic> json) {
+    return PredictionCourseSpecialty(
+      courseId: ProfileModel._toInt(json['course_id']) ?? 0,
+      courseName: json['course_name']?.toString() ?? '',
+      specialties: (json['specialties'] as List<dynamic>? ?? [])
+          .whereType<Map<String, dynamic>>()
+          .map((e) => PredictionSpecialtyItem.fromJson(e))
+          .toList(),
+    );
+  }
+}
+
+class PredictionSpecialtyItem {
+  final int id;
+  final String specialtyName;
+  final String source;
+
+  PredictionSpecialtyItem({
+    required this.id,
+    required this.specialtyName,
+    required this.source,
+  });
+
+  factory PredictionSpecialtyItem.fromJson(Map<String, dynamic> json) {
+    return PredictionSpecialtyItem(
+      id: ProfileModel._toInt(json['id']) ?? 0,
+      specialtyName: json['specialty_name']?.toString() ?? '',
+      source: json['source']?.toString() ?? '',
+    );
   }
 }
