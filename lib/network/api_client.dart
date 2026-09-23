@@ -93,14 +93,15 @@ class ApiClient {
           return handler.next(options);
         },
         onError: (error, handler) async {
-          // print("");
-          // print("=========== API ERROR ===========");
-          // print("URL: ${error.requestOptions.uri}");
-          // print("METHOD: ${error.requestOptions.method}");
-          // print("STATUS CODE: ${error.response?.statusCode}");
-          // print("RESPONSE: ${error.response?.data}");
-          // print("=================================");
-          // print("");
+          print("");
+          print("=========== API ERROR ===========");
+          print("URL: ${error.requestOptions.uri}");
+          print("METHOD: ${error.requestOptions.method}");
+          print("REQUEST DATA: ${error.requestOptions.data}");
+          print("STATUS CODE: ${error.response?.statusCode}");
+          print("SERVER RESPONSE: ${error.response?.data}");
+          print("=================================");
+          print("");
 
           if (_shouldRefreshAndRetry(error)) {
             final token = await TokenService.getAccessToken();
@@ -968,8 +969,11 @@ class ApiClient {
     }
 
     if (status != null && status >= 500) {
+      final serverMsg = _extractErrorMessage(data);
       return AppException(
-        message: 'Server error. Please try again later.',
+        message: serverMsg.isNotEmpty && serverMsg != 'Something went wrong. Please try again.'
+            ? 'Server error ($status): $serverMsg'
+            : 'Server error ($status). Please try again later.',
         debugMessage: e.message,
         statusCode: status,
       );

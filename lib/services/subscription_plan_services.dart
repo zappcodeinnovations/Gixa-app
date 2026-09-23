@@ -112,6 +112,31 @@ class SubscriptionApi {
     return CreateOrderResponse.fromJson(response);
   }
 
+  /// 🎓 CREATE COURSE ADDON ORDER
+  static Future<CreateOrderResponse> addCourseOrder({
+    required int subscriptionId,
+    required List<int> courseIds,
+  }) async {
+    print("==================================================");
+    print("🚀 [API CALL] addCourseOrder");
+    print("URL: ${ApiEndpoints.subscriptionAddCourse}");
+    print("Payload: ${{
+      "subscription_id": subscriptionId,
+      "course_ids": courseIds,
+    }}");
+    print("==================================================");
+
+    final response = await ApiClient.post(
+      ApiEndpoints.subscriptionAddCourse,
+      {
+        "subscription_id": subscriptionId,
+        "course_ids": courseIds,
+      },
+    );
+    print("✅ [API] addCourseOrder Response: $response");
+    return CreateOrderResponse.fromJson(response);
+  }
+
   /// ✅ VERIFY PAYMENT
   static Future<VerifyPaymentResponse> verifyPayment({
     required String razorpayOrderId,
@@ -203,4 +228,51 @@ class SubscriptionApi {
       return null;
     }
   }
+
+  /// 📚 GET AVAILABLE COURSES (For Course Selection Bottom Sheet)
+  static Future<List<AvailableCourse>> getAvailableCourses({
+    bool forceRefresh = false,
+  }) async {
+    try {
+      final response = await ApiClient.get(
+        ApiEndpoints.subscriptionAvailableCourses,
+        requestPolicy: RequestPolicy(
+          ttl: const Duration(minutes: 5),
+          forceRefresh: forceRefresh,
+        ),
+      );
+      print("✅ [API] getAvailableCourses response: $response");
+
+      List rawList = [];
+      if (response is List) {
+        rawList = response;
+      } else if (response is Map) {
+        if (response['data'] is List) {
+          rawList = response['data'] as List;
+        } else if (response['data'] is Map) {
+          final dataMap = response['data'] as Map;
+          if (dataMap['courses'] is List) {
+            rawList = dataMap['courses'] as List;
+          } else if (dataMap['available_courses'] is List) {
+            rawList = dataMap['available_courses'] as List;
+          }
+        } else if (response['available_courses'] is List) {
+          rawList = response['available_courses'] as List;
+        } else if (response['courses'] is List) {
+          rawList = response['courses'] as List;
+        } else if (response['results'] is List) {
+          rawList = response['results'] as List;
+        }
+      }
+
+      return rawList
+          .whereType<Map<String, dynamic>>()
+          .map((c) => AvailableCourse.fromJson(c))
+          .toList();
+    } catch (e) {
+      print("❌ [API] Error fetching available courses: $e");
+      return [];
+    }
+  }
 }
+

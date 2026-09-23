@@ -86,6 +86,33 @@ class SubscriptionController extends GetxController {
       isSpecialtyLoading.value = false;
     }
   }
+
+  final isAvailableCoursesLoading = false.obs;
+
+  Future<void> fetchAvailableCoursesForSheet({bool forceRefresh = false}) async {
+    try {
+      isAvailableCoursesLoading.value = true;
+      final fetchedCourses = await SubscriptionApi.getAvailableCourses(
+        forceRefresh: forceRefresh,
+      );
+      if (fetchedCourses.isNotEmpty) {
+        final profileController = Get.isRegistered<ProfileController>()
+            ? Get.find<ProfileController>()
+            : Get.put(ProfileController());
+
+        final filteredCourses = fetchedCourses.where((course) {
+          final isCourseUG = profileController.isCourseUG(course.id != -1 ? course.id : course.courseId);
+          return profileController.isUGUser == isCourseUG;
+        }).toList();
+
+        availableCourses.assignAll(filteredCourses.isNotEmpty ? filteredCourses : fetchedCourses);
+      }
+    } catch (e) {
+      print("[SubscriptionController] Error in fetchAvailableCoursesForSheet: $e");
+    } finally {
+      isAvailableCoursesLoading.value = false;
+    }
+  }
   @override
   void onInit() {
     super.onInit();
@@ -475,21 +502,21 @@ class SubscriptionController extends GetxController {
       }
 
       if (isAddonOnly) {
-        int coursesAmount = 0;
         final newlySelected = selectedCourses
             .where((id) => !lockedCourses.contains(id))
             .toList();
-        for (final courseId in newlySelected) {
-          final course = availableCourses.firstWhereOrNull(
-            (c) => (c.id != -1 ? c.id : c.courseId) == courseId,
-          );
-          if (course != null) {
-            coursesAmount += course.amount.round();
-          }
-        }
-        baseAmount = coursesAmount;
-        finalAmount = coursesAmount;
-        addonCourseIds = newlySelected;
+
+        final activeSub = _historyController.historyList.firstWhereOrNull((h) => h.isActive);
+        final subId = activeSub?.id ?? planId;
+
+        final orderRes = await SubscriptionApi.addCourseOrder(
+          subscriptionId: subId,
+          courseIds: newlySelected,
+        );
+
+        _currentOrder = orderRes.data;
+        final parsedAmt = _parseAmount(orderRes.data.finalAmount);
+        return await _openRazorpay(parsedAmt > 0 ? parsedAmt : 0);
       } else {
         addonCourseIds = selectedCourses.toList();
         // Fetch fresh preview to include selected states and courses
@@ -721,6 +748,15 @@ class SubscriptionController extends GetxController {
           }
         }
         selectedSpecialtyAddonIds.clear();
+      }
+
+      if (selectedCourses.isNotEmpty) {
+        for (final courseId in selectedCourses) {
+          final c = availableCourses.firstWhereOrNull((item) => (item.id != -1 ? item.id : item.courseId) == courseId);
+          if (c != null && !purchasedCourseNames.contains(c.courseName)) {
+            purchasedCourseNames.add(c.courseName);
+          }
+        }
       }
 
       selectedStates.clear();

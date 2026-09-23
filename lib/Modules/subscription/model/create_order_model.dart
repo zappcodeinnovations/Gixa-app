@@ -10,12 +10,18 @@ class CreateOrderResponse {
   });
 
   factory CreateOrderResponse.fromJson(Map<String, dynamic> json) {
+    final status = json['status'] ?? json['success'] ?? true;
+    final dynamic rawData = json['data'];
+    final Map<String, dynamic> dataMap = (rawData is Map<String, dynamic>)
+        ? rawData
+        : (rawData is Map
+            ? Map<String, dynamic>.from(rawData)
+            : json);
+
     return CreateOrderResponse(
-      status: json['status'] ?? false,
-      message: json['message'] ?? '',
-      data: CreateOrderData.fromJson(
-        json['data'] as Map<String, dynamic>,
-      ),
+      status: status is bool ? status : (status.toString().toLowerCase() == 'true'),
+      message: json['message']?.toString() ?? '',
+      data: CreateOrderData.fromJson(dataMap),
     );
   }
 }

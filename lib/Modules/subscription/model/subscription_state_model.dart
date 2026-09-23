@@ -115,12 +115,23 @@ class AvailableCourse {
   });
 
   factory AvailableCourse.fromJson(Map<String, dynamic> json) {
+    final parsedId = int.tryParse(json['id']?.toString() ?? '') ?? -1;
+    final parsedCourseId =
+        int.tryParse(json['course_id']?.toString() ?? '') ?? -1;
+    final effectiveId = parsedId != -1 ? parsedId : parsedCourseId;
+    final effectiveCourseId = parsedCourseId != -1 ? parsedCourseId : parsedId;
+
     return AvailableCourse(
-      courseId: int.tryParse(json['course_id']?.toString() ?? '') ?? -1,
-      id: int.tryParse(json['id']?.toString() ?? '') ?? -1,
-      courseName: json['course_name']?.toString() ?? "Unknown",
-      courseCode: json['course_code']?.toString() ?? "Unknown",
-      amount: double.tryParse(json['amount']?.toString() ?? '0') ?? 0.0,
+      courseId: effectiveCourseId,
+      id: effectiveId,
+      courseName: (json['course_name'] ?? json['name'] ?? json['title'])
+              ?.toString() ??
+          "Unknown",
+      courseCode: (json['course_code'] ?? json['code'])?.toString() ?? "Unknown",
+      amount: double.tryParse(
+              (json['amount'] ?? json['price'] ?? json['fee'])?.toString() ??
+                  '0') ??
+          0.0,
     );
   }
 }

@@ -41,6 +41,9 @@ class CourseSelectionBottomSheet {
     final controller = Get.find<SubscriptionController>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
+    // Fetch available courses from the dedicated available-courses API
+    controller.fetchAvailableCoursesForSheet(forceRefresh: true);
+
     // Fetch initial price including default/locked courses
     controller.updateCourseSelectionPrice(plan.id);
 
@@ -70,45 +73,72 @@ class CourseSelectionBottomSheet {
                 ),
               ),
               Obx(
-                () => Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Select Courses',
-                      style: heading(
-                        18,
-                        color: isDark ? Colors.white : Colors.black,
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 5,
-                      ),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [orange, pink],
-                        ),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        '${controller.selectedCourses.length} Selected',
-                        style: body(
-                          12,
-                          color: Colors.white,
-                          fw: FontWeight.w600,
+                () {
+                  final count = isAddonOnly
+                      ? controller.selectedCourses
+                          .where((id) => !controller.lockedCourses.contains(id))
+                          .length
+                      : controller.selectedCourses.length;
+
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Select Courses',
+                        style: heading(
+                          18,
+                          color: isDark ? Colors.white : Colors.black,
                         ),
                       ),
-                    ),
-                  ],
-                ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [orange, pink],
+                          ),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          '$count Selected',
+                          style: body(
+                            12,
+                            color: Colors.white,
+                            fw: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
               const SizedBox(height: 14),
 
               // Course list
               Expanded(
                 child: Obx(() {
+                  if (controller.isAvailableCoursesLoading.value &&
+                      controller.availableCourses.isEmpty) {
+                    return const Center(
+                      child: CircularProgressIndicator(color: orange),
+                    );
+                  }
+
                   final sortedCourses = controller.availableCourses.toList();
+                  if (sortedCourses.isEmpty) {
+                    return Center(
+                      child: Text(
+                        'No courses available',
+                        style: body(
+                          14,
+                          color: Colors.grey.shade400,
+                        ),
+                      ),
+                    );
+                  }
+
                   return ListView.builder(
                     itemCount: sortedCourses.length,
                     itemBuilder: (_, i) {
