@@ -17,6 +17,7 @@ class CollegeCutoffController extends GetxController {
   final userAir = 0.obs;
   final cutoffData = Rxn<CollegeCategoryCutoffResponse>();
   final selectedCourseId = RxnInt();
+  final selectedCourseName = RxnString();
   final selectedSpecialityType = RxnString();
   final selectedSpecialityId = RxnInt();
   final selectedQuotaId = RxnInt();
@@ -111,29 +112,37 @@ class CollegeCutoffController extends GetxController {
     return false;
   }
 
-  List<MapEntry<int, String>> get courseOptions {
-    final map = <int, String>{};
+  List<String> get courseOptions {
+    final names = <String>{};
     final isUGUser = _profileController.isUGUser;
     
     for (final record in cutoffData.value?.categoryCutoffs ?? const <CollegeCategoryCutoffRecord>[]) {
       final isCourseUG = _isCourseRecordUG(record);
       if (isUGUser == isCourseUG) {
-        map[record.courseId] = record.courseName;
+        final name = record.courseName.trim();
+        if (name.isNotEmpty) {
+          names.add(name);
+        }
       }
     }
-    return map.entries.toList();
+    return names.toList()..sort();
   }
 
   List<MapEntry<String, String>> get specialityTypeOptions {
     final map = <String, String>{};
     var records = cutoffData.value?.categoryCutoffs ?? const <CollegeCategoryCutoffRecord>[];
-    if (selectedCourseId.value != null) {
-      records = records.where((r) => r.courseId == selectedCourseId.value).toList();
+    if (selectedCourseName.value != null && selectedCourseName.value!.isNotEmpty) {
+      records = records
+          .where((r) => r.courseName.trim().toLowerCase() == selectedCourseName.value!.trim().toLowerCase())
+          .toList();
     }
 
     for (final record in records) {
-      if (record.specialityType != null && record.specialityType!.trim().isNotEmpty && record.specialityType!.toLowerCase() != 'null') {
-        map[record.specialityType!] = record.specialityType!;
+      if (record.specialityType != null &&
+          record.specialityType!.trim().isNotEmpty &&
+          record.specialityType!.toLowerCase() != 'null') {
+        map[record.specialityType!.trim()] =
+            record.specialityType!.trim().replaceAll('_', ' ');
       }
     }
     return map.entries.toList();
@@ -142,19 +151,28 @@ class CollegeCutoffController extends GetxController {
   List<MapEntry<int, String>> get specialityOptions {
     final map = <int, String>{};
     var records = cutoffData.value?.categoryCutoffs ?? const <CollegeCategoryCutoffRecord>[];
-    if (selectedCourseId.value != null) {
-      records = records.where((r) => r.courseId == selectedCourseId.value).toList();
+    if (selectedCourseName.value != null && selectedCourseName.value!.isNotEmpty) {
+      records = records
+          .where((r) => r.courseName.trim().toLowerCase() == selectedCourseName.value!.trim().toLowerCase())
+          .toList();
     }
-    if (selectedSpecialityType.value != null) {
-      records = records.where((r) => r.specialityType == selectedSpecialityType.value).toList();
+    if (selectedSpecialityType.value != null && selectedSpecialityType.value!.isNotEmpty) {
+      records = records
+          .where((r) => r.specialityType?.trim().toLowerCase() == selectedSpecialityType.value!.trim().toLowerCase())
+          .toList();
     }
 
     for (final record in records) {
-      if (record.specialityId != null && record.specialityName != null && record.specialityName!.trim().isNotEmpty && record.specialityName!.toLowerCase() != 'null') {
-        map[record.specialityId!] = record.specialityName!;
+      if (record.specialityId != null &&
+          record.specialityName != null &&
+          record.specialityName!.trim().isNotEmpty &&
+          record.specialityName!.toLowerCase() != 'null') {
+        map[record.specialityId!] = record.specialityName!.trim();
       }
     }
-    return map.entries.toList();
+    final list = map.entries.toList();
+    list.sort((a, b) => a.value.compareTo(b.value));
+    return list;
   }
 
   List<MapEntry<int, String>> get quotaOptions {
@@ -264,8 +282,8 @@ class CollegeCutoffController extends GetxController {
     return 'Closest category: ${closest.displayCategory} with cutoff ${formatNumber(closest.lastCutoffRank)}. You are $relation $gapText ranks.';
   }
 
-  void updateCourse(int? courseId) {
-    selectedCourseId.value = courseId;
+  void updateCourse(String? courseName) {
+    selectedCourseName.value = courseName;
     
     final types = specialityTypeOptions;
     selectedSpecialityType.value = types.isEmpty ? null : types.first.key;
@@ -348,6 +366,7 @@ class CollegeCutoffController extends GetxController {
   void _seedFilters() {
     final courses = courseOptions;
     if (courses.isEmpty) {
+      selectedCourseName.value = null;
       selectedCourseId.value = null;
       selectedSpecialityType.value = null;
       selectedSpecialityId.value = null;
@@ -355,23 +374,31 @@ class CollegeCutoffController extends GetxController {
       return;
     }
 
-    selectedCourseId.value ??= courses.first.key;
+    if (selectedCourseName.value == null || !courses.contains(selectedCourseName.value)) {
+      selectedCourseName.value = courses.first;
+    }
     
     if (!_profileController.isUGUser) {
       final types = specialityTypeOptions;
-      if (selectedSpecialityType.value == null && types.isNotEmpty) {
+      if (types.isNotEmpty && (selectedSpecialityType.value == null || !types.any((t) => t.key == selectedSpecialityType.value))) {
         selectedSpecialityType.value = types.first.key;
+      } else if (types.isEmpty) {
+        selectedSpecialityType.value = null;
       }
       
       final specialities = specialityOptions;
-      if (selectedSpecialityId.value == null && specialities.isNotEmpty) {
+      if (specialities.isNotEmpty && (selectedSpecialityId.value == null || !specialities.any((s) => s.key == selectedSpecialityId.value))) {
         selectedSpecialityId.value = specialities.first.key;
+      } else if (specialities.isEmpty) {
+        selectedSpecialityId.value = null;
       }
     }
 
     final quotas = quotaOptions;
-    if (selectedQuotaId.value == null && quotas.isNotEmpty) {
+    if (quotas.isNotEmpty && (selectedQuotaId.value == null || !quotas.any((q) => q.key == selectedQuotaId.value))) {
       selectedQuotaId.value = quotas.first.key;
+    } else if (quotas.isEmpty) {
+      selectedQuotaId.value = null;
     }
   }
 
@@ -383,16 +410,16 @@ class CollegeCutoffController extends GetxController {
     final isUGUser = _profileController.isUGUser;
     records = records.where((r) => _isCourseRecordUG(r) == isUGUser).toList();
 
-    if (selectedCourseId.value != null) {
+    if (selectedCourseName.value != null && selectedCourseName.value!.isNotEmpty) {
       records = records
-          .where((record) => record.courseId == selectedCourseId.value)
+          .where((record) => record.courseName.trim().toLowerCase() == selectedCourseName.value!.trim().toLowerCase())
           .toList();
     }
     
     if (!isUGUser) {
-      if (selectedSpecialityType.value != null) {
+      if (selectedSpecialityType.value != null && selectedSpecialityType.value!.isNotEmpty) {
         records = records
-            .where((record) => record.specialityType == selectedSpecialityType.value)
+            .where((record) => record.specialityType?.trim().toLowerCase() == selectedSpecialityType.value!.trim().toLowerCase())
             .toList();
       }
       if (selectedSpecialityId.value != null) {

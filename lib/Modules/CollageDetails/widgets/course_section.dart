@@ -189,6 +189,8 @@ class _PgCourseTreeCategory extends StatelessWidget {
       var sType = pg.specialtyType?.trim();
       if (sType == null || sType.isEmpty || sType.toLowerCase() == 'null') {
         sType = 'General';
+      } else {
+        sType = sType.replaceAll('_', ' ');
       }
       var sName = pg.specialtyName.trim();
 

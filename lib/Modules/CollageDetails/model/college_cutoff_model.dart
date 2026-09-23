@@ -32,11 +32,37 @@ class CollegeCategoryCutoffResponse {
     final List<CollegeCategoryCutoffRecord> allCutoffs = [];
     final Set<String> seen = {};
 
-    void addCutoffs(List? cutoffs) {
+    void addCutoffs(
+      List? cutoffs, {
+      String? fallbackCourseName,
+      dynamic fallbackSpecialityId,
+      String? fallbackSpecialityName,
+      String? fallbackSpecialityType,
+    }) {
       if (cutoffs == null) return;
       for (final c in cutoffs) {
         if (c is Map) {
-          final record = CollegeCategoryCutoffRecord.fromJson(Map<String, dynamic>.from(c));
+          final cMap = Map<String, dynamic>.from(c);
+          if (fallbackCourseName != null &&
+              (cMap['course_name'] == null ||
+                  cMap['course_name'].toString().trim().isEmpty)) {
+            cMap['course_name'] = fallbackCourseName;
+          }
+          if (fallbackSpecialityId != null && cMap['speciality_id'] == null) {
+            cMap['speciality_id'] = fallbackSpecialityId;
+          }
+          if (fallbackSpecialityName != null &&
+              (cMap['speciality_name'] == null ||
+                  cMap['speciality_name'].toString().trim().isEmpty)) {
+            cMap['speciality_name'] = fallbackSpecialityName;
+          }
+          if (fallbackSpecialityType != null &&
+              (cMap['speciality_type'] == null ||
+                  cMap['speciality_type'].toString().trim().isEmpty)) {
+            cMap['speciality_type'] = fallbackSpecialityType;
+          }
+
+          final record = CollegeCategoryCutoffRecord.fromJson(cMap);
           final key = '${record.courseId}_${record.specialityId}_${record.quotaId}_${record.category}';
           if (!seen.contains(key)) {
             seen.add(key);
@@ -49,15 +75,28 @@ class CollegeCategoryCutoffResponse {
     final coursesList = data['courses'] as List? ?? [];
     for (final courseObj in coursesList) {
       if (courseObj is Map) {
-        addCutoffs(courseObj['category_cutoffs'] as List?);
+        final fallbackCourseName = courseObj['course_name']?.toString();
+        addCutoffs(
+          courseObj['category_cutoffs'] as List?,
+          fallbackCourseName: fallbackCourseName,
+        );
 
         final specGroups = courseObj['speciality_groups'] as List? ?? [];
         for (final groupObj in specGroups) {
           if (groupObj is Map) {
+            final groupType = (groupObj['group'] ?? groupObj['group_name'])?.toString();
             final specialities = groupObj['specialities'] as List? ?? [];
             for (final specObj in specialities) {
               if (specObj is Map) {
-                addCutoffs(specObj['category_cutoffs'] as List?);
+                final specId = specObj['speciality_id'];
+                final specName = specObj['speciality_name']?.toString();
+                addCutoffs(
+                  specObj['category_cutoffs'] as List?,
+                  fallbackCourseName: fallbackCourseName,
+                  fallbackSpecialityId: specId,
+                  fallbackSpecialityName: specName,
+                  fallbackSpecialityType: groupType,
+                );
               }
             }
           }

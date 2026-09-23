@@ -274,14 +274,14 @@ class _CollegeCutoffTabState extends State<CollegeCutoffTab> {
             ),
           ),
           const SizedBox(height: 14),
-          DropdownButtonFormField<int>(
-            value: controller.selectedCourseId.value,
+          DropdownButtonFormField<String>(
+            value: controller.selectedCourseName.value,
             isExpanded: true,
             items: courses
                 .map(
-                  (entry) => DropdownMenuItem<int>(
-                    value: entry.key,
-                    child: Text(entry.value),
+                  (courseName) => DropdownMenuItem<String>(
+                    value: courseName,
+                    child: Text(courseName),
                   ),
                 )
                 .toList(),
