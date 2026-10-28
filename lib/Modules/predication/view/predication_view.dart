@@ -826,7 +826,7 @@ class _PredictionViewState extends State<PredictionView>
                   controller.selectedSpecialtyId.value = null;
                   
                   // Re-fetch quotas for new course
-                  controller.loadStatewiseCategories(forceRefresh: true);
+                  controller.loadStatewiseCategories(forceRefresh: false);
                 }
                 print('State wise course for pg: State: ${controller.selectedState.value}, Course: ${controller.selectedCourse.value}');
               },
@@ -944,6 +944,11 @@ class _PredictionViewState extends State<PredictionView>
           specialtyItems.add(noSpecialtyPrompt);
         }
 
+        final List<String> dropdownSpecialtyItems = [
+          'Select Specialty',
+          ...specialtyItems.where((s) => s != 'Select Specialty'),
+        ];
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
@@ -951,10 +956,10 @@ class _PredictionViewState extends State<PredictionView>
             _aiDropdown(
               label: "Specialty",
               icon: Icons.local_hospital_outlined,
-              value: specialtyItems.contains(controller.selectedSpecialty.value)
+              value: dropdownSpecialtyItems.contains(controller.selectedSpecialty.value)
                   ? controller.selectedSpecialty.value
                   : 'Select Specialty',
-              items: specialtyItems,
+              items: dropdownSpecialtyItems,
               enabled: true,
               suffixIcon: null,
               onChanged: (v) {
@@ -975,7 +980,7 @@ class _PredictionViewState extends State<PredictionView>
                 }
 
                 // Re-fetch quotas for selected specialty
-                controller.loadStatewiseCategories(forceRefresh: true);
+                controller.loadStatewiseCategories(forceRefresh: false);
               },
               isDark: isDark,
             ),
@@ -1358,6 +1363,7 @@ class _PredictionViewState extends State<PredictionView>
 
     final inputDec = InputDecoration(
       labelText: label,
+      floatingLabelBehavior: FloatingLabelBehavior.always,
       labelStyle: TextStyle(
         fontSize: 12,
         fontWeight: FontWeight.w600,

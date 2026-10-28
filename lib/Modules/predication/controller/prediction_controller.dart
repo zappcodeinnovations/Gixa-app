@@ -623,7 +623,29 @@ Generating your AI college prediction...
 
   void onStateChanged(String state) {
     selectedState.value = state;
-    loadStatewiseCategories(forceRefresh: true);
+
+    // 1. Instant Cache Hit: Immediately update categories & quotas if this state exists in memory cache
+    final targetState = effectiveState.trim();
+    if (targetState.isNotEmpty && targetState != 'Select State') {
+      final stateKey = stateCategoryMap.keys.firstWhere(
+        (k) => k.toLowerCase() == targetState.toLowerCase(),
+        orElse: () => '',
+      );
+      if (stateKey.isNotEmpty) {
+        updateCategoriesByState(targetState, preserveExistingCategory: true);
+
+        // Reset selected quota if it's not valid for this state's cached quotas
+        final currentQuotas = availableQuotasForSelectedState;
+        if (selectedQuota.value.isNotEmpty &&
+            currentQuotas.isNotEmpty &&
+            !currentQuotas.contains(selectedQuota.value)) {
+          selectedQuota.value = "";
+        }
+      }
+    }
+
+    // 2. Background sync without forcing refresh (uses TTL cache if valid, otherwise refreshes silently)
+    loadStatewiseCategories(forceRefresh: false);
   }
 
   void loadRecentPredictions() {
