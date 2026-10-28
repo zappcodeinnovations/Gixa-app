@@ -19,8 +19,22 @@ import 'package:get_storage/get_storage.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:Gixa/common/widgets/app_snackbar.dart';
 import 'package:Gixa/services/app_verification_controller.dart';
+import 'package:flutter/foundation.dart';
 import 'package:Gixa/Modules/payment/view/payment_success_dialog.dart';
 import 'package:Gixa/Modules/payment/view/payment_fail_dialog.dart';
+import 'package:Gixa/Modules/subscription/utils/plan_hierarchy.dart';
+
+class AddonRequirementResult {
+  final bool isAllowed;
+  final plan_models.SubscriptionPlan? requiredBasePlan;
+  final String basePlanName;
+
+  const AddonRequirementResult({
+    required this.isAllowed,
+    this.requiredBasePlan,
+    required this.basePlanName,
+  });
+}
 
 class SubscriptionController extends GetxController {
   final plans = <plan_models.SubscriptionPlan>[].obs;
@@ -49,6 +63,22 @@ class SubscriptionController extends GetxController {
   late final PaymentController _paymentController;
   late final SubscriptionHistoryController _historyController;
   late final Razorpay _razorpay;
+
+  VoidCallback? onPaymentReset;
+
+  void clearPaymentProcessData() {
+    selectedStates.clear();
+    selectedCourses.clear();
+    selectedSpecialtyAddonIds.clear();
+    previewMap.clear();
+    couponErrorMap.clear();
+    applyingCouponMap.clear();
+    _currentOrder = null;
+    isCreatingOrder.value = false;
+    previewMap.refresh();
+    couponErrorMap.refresh();
+    onPaymentReset?.call();
+  }
 
   Future<void>? _plansFuture;
   Future<void>? _activePlanFuture;
@@ -243,6 +273,114 @@ class SubscriptionController extends GetxController {
     ].toSet().toList();
 
     return finalStates;
+  }
+
+  /// =======================================================
+  /// ADDON PLAN BASE REQUIREMENT CHECK
+  /// =======================================================
+  AddonRequirementResult checkAddonPlanRequirement(
+    plan_models.SubscriptionPlan addonPlan,
+  ) {
+    if (addonPlan.isAddon != true) {
+      return const AddonRequirementResult(isAllowed: true, basePlanName: '');
+    }
+
+    // 1. Determine the required tier for the addon plan
+    final addonTier = PlanHierarchy.getTierFromPlan(
+      planCode: addonPlan.planCode,
+      planName: addonPlan.planName,
+    );
+
+    // 2. Look for matching base plan from regular plans in catalog
+    plan_models.SubscriptionPlan? matchingBasePlan;
+    if (addonTier != PlanTier.free) {
+      matchingBasePlan = regularPlans.firstWhereOrNull((p) =>
+          PlanHierarchy.getTierFromPlan(
+            planCode: p.planCode,
+            planName: p.planName,
+          ) ==
+          addonTier);
+    }
+
+    // Fallback: keyword matching by name if tier didn't match
+    if (matchingBasePlan == null) {
+      final lowerName = addonPlan.planName.toLowerCase();
+      for (final reg in regularPlans) {
+        final regLower = reg.planName.toLowerCase();
+        if (lowerName.contains('vip') && regLower.contains('vip')) {
+          matchingBasePlan = reg;
+          break;
+        } else if (lowerName.contains('classic') &&
+            regLower.contains('classic')) {
+          matchingBasePlan = reg;
+          break;
+        } else if (lowerName.contains('premium') &&
+            regLower.contains('premium')) {
+          matchingBasePlan = reg;
+          break;
+        } else if (lowerName.contains('basic') && regLower.contains('basic')) {
+          matchingBasePlan = reg;
+          break;
+        }
+      }
+    }
+
+    // Fallback to first regular plan if no specific tier is bound
+    matchingBasePlan ??= regularPlans.firstOrNull;
+
+    final basePlanName = matchingBasePlan?.planName ??
+        (addonTier != PlanTier.free
+            ? '${PlanHierarchy.getTierName(addonTier)} Plan'
+            : 'Base Plan');
+
+    // 3. Check if user already holds an active base plan
+    bool hasBasePlan = false;
+    if (matchingBasePlan != null) {
+      hasBasePlan = _historyController.isPlanActive(matchingBasePlan.id);
+    }
+
+    // Also check activePlan tier
+    if (!hasBasePlan &&
+        activePlan.value != null &&
+        !activePlan.value!.isAddon) {
+      if (addonTier == PlanTier.free) {
+        hasBasePlan = true;
+      } else {
+        final currentTier = PlanHierarchy.getTierFromPlan(
+          planCode: activePlan.value!.planCode,
+          planName: activePlan.value!.planName,
+        );
+        if (currentTier.index >= addonTier.index) {
+          hasBasePlan = true;
+        }
+      }
+    }
+
+    // Also check history list for any active matching regular plan
+    if (!hasBasePlan) {
+      for (final h in _historyController.historyList) {
+        if (h.isActive && !h.isExpired && !h.plan.isAddon) {
+          if (addonTier == PlanTier.free) {
+            hasBasePlan = true;
+            break;
+          }
+          final hTier = PlanHierarchy.getTierFromPlan(
+            planCode: h.plan.planCode,
+            planName: h.plan.planName,
+          );
+          if (hTier.index >= addonTier.index) {
+            hasBasePlan = true;
+            break;
+          }
+        }
+      }
+    }
+
+    return AddonRequirementResult(
+      isAllowed: hasBasePlan,
+      requiredBasePlan: matchingBasePlan,
+      basePlanName: basePlanName,
+    );
   }
 
   Future<void> fetchPlans({bool forceRefresh = false}) async {
@@ -468,6 +606,20 @@ class SubscriptionController extends GetxController {
       }
 
       final plan = plans.firstWhere((p) => p.id == planId);
+
+      // Addon restriction check
+      if (plan.isAddon == true && !isAddonOnly) {
+        final addonReq = checkAddonPlanRequirement(plan);
+        if (!addonReq.isAllowed) {
+          clearPaymentProcessData();
+          AppSnackbar.show(
+            'Base Plan Required',
+            'Please purchase the ${addonReq.basePlanName} first before purchasing this add-on plan.',
+          );
+          return false;
+        }
+      }
+
       final preview = previewMap[planId];
 
       int baseAmount = _parseAmount(plan.amount);
@@ -558,11 +710,13 @@ class SubscriptionController extends GetxController {
         '[SubscriptionController] createOrderAndPay AppException: ${e.message}',
       );
       print(stackTrace);
+      clearPaymentProcessData();
       AppSnackbar.show('Error', e.message);
       return false;
     } catch (e, stackTrace) {
       print('[SubscriptionController] createOrderAndPay unexpected error: $e');
       print(stackTrace);
+      clearPaymentProcessData();
       AppSnackbar.show('Error', 'Unable to create order. $e');
       return false;
     } finally {
@@ -579,6 +733,7 @@ class SubscriptionController extends GetxController {
     }
 
     if (key.isEmpty) {
+      clearPaymentProcessData();
       AppSnackbar.show(
         'Payment Error',
         'Payment service not available. Please try later.',
@@ -772,6 +927,8 @@ class SubscriptionController extends GetxController {
         Get.find<ProfileController>().fetchProfile(force: true);
       }
 
+      clearPaymentProcessData();
+
       Get.dialog(const PaymentSuccessDialog(), barrierDismissible: false);
     } catch (e, stack) {
       print('[_onPaymentSuccess] error: $e\n$stack');
@@ -780,9 +937,7 @@ class SubscriptionController extends GetxController {
   }
 
   void _onPaymentError(PaymentFailureResponse res) {
-    selectedStates.clear();
-    selectedCourses.clear();
-    selectedSpecialtyAddonIds.clear();
+    clearPaymentProcessData();
 
     String message;
 

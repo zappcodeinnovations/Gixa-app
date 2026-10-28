@@ -91,6 +91,12 @@ class _SubscriptionPageState extends State<SubscriptionPage>
     _heroFade = CurvedAnimation(parent: _heroAnimCtrl, curve: Curves.easeOut);
     _heroAnimCtrl.forward();
 
+    controller.onPaymentReset = () {
+      for (final c in _couponControllers.values) {
+        c.clear();
+      }
+    };
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await controller.ensurePlanCatalogLoaded();
       await controller.ensureActivePlanReady();
@@ -116,6 +122,7 @@ class _SubscriptionPageState extends State<SubscriptionPage>
 
   @override
   void dispose() {
+    controller.onPaymentReset = null;
     _heroAnimCtrl.dispose();
     for (final c in _couponControllers.values) c.dispose();
     super.dispose();
@@ -134,7 +141,6 @@ class _SubscriptionPageState extends State<SubscriptionPage>
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final size = MediaQuery.of(context).size;
-    final allPlans = controller.plans.toList();
     return Scaffold(
       backgroundColor: isDark
           ? const Color(0xFF0A0A0F)
@@ -156,6 +162,8 @@ class _SubscriptionPageState extends State<SubscriptionPage>
             ),
           );
         }
+
+        final allPlans = controller.plans.toList();
 
         return Stack(
           children: [
@@ -181,6 +189,7 @@ class _SubscriptionPageState extends State<SubscriptionPage>
 
                       Widget card = Obx(
                         () => _PlanCard(
+                          key: ValueKey(plan.id),
                           plan: plan,
                           isSelected: selectedPlanId.value == plan.id,
                           isPurchased: historyController.isPlanActive(plan.id),
@@ -191,7 +200,17 @@ class _SubscriptionPageState extends State<SubscriptionPage>
                           onSelect: () {
                             selectedPlanId.value = plan.id;
                           },
-                          onProceed: () => _openConfirmSheet(context, plan),
+                          onProceed: () {
+                            selectedPlanId.value = plan.id;
+                            if (plan.isAddon == true) {
+                              final req = controller.checkAddonPlanRequirement(plan);
+                              if (!req.isAllowed) {
+                                _showAddonBasePlanRequiredDialog(context, plan, req);
+                                return;
+                              }
+                            }
+                            _openConfirmSheet(context, plan);
+                          },
                         ),
                       );
 
@@ -254,6 +273,13 @@ class _SubscriptionPageState extends State<SubscriptionPage>
                       (p) => p.id == selectedPlanId.value,
                     );
                     if (plan == null) return;
+                    if (plan.isAddon == true) {
+                      final req = controller.checkAddonPlanRequirement(plan);
+                      if (!req.isAllowed) {
+                        _showAddonBasePlanRequiredDialog(context, plan, req);
+                        return;
+                      }
+                    }
                     _openConfirmSheet(context, plan);
                   },
                 ),
@@ -289,6 +315,251 @@ class _SubscriptionPageState extends State<SubscriptionPage>
           ),
         ),
       ],
+    );
+  }
+
+  // ── Addon Base Plan Restriction Dialog ───────────────────────
+  void _showAddonBasePlanRequiredDialog(
+    BuildContext context,
+    SubscriptionPlan addonPlan,
+    AddonRequirementResult req,
+  ) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    Get.dialog(
+      Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(22, 26, 22, 22),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF161622) : Colors.white,
+            borderRadius: BorderRadius.circular(26),
+            border: Border.all(
+              color: const Color(0xFFFFB020).withOpacity(0.35),
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFFFFB020).withOpacity(0.18),
+                blurRadius: 28,
+                spreadRadius: 2,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Lock Badge
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFFFB020), Color(0xFFFF5E3A)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFFF7A00).withOpacity(0.35),
+                      blurRadius: 20,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.lock_rounded,
+                  color: Colors.white,
+                  size: 32,
+                ),
+              ),
+              const SizedBox(height: 18),
+
+              // Title
+              Text(
+                'Base Plan Required',
+                textAlign: TextAlign.center,
+                style: _T.heading(
+                  19,
+                  color: isDark ? Colors.white : Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 10),
+
+              // Description Message
+              RichText(
+                textAlign: TextAlign.center,
+                text: TextSpan(
+                  style: _T.body(
+                    14,
+                    color: isDark ? Colors.white70 : Colors.black54,
+                  ),
+                  children: [
+                    const TextSpan(text: 'You cannot purchase '),
+                    TextSpan(
+                      text: addonPlan.planName,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : Colors.black87,
+                      ),
+                    ),
+                    const TextSpan(text: ' without an active '),
+                    TextSpan(
+                      text: req.basePlanName,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFFFF9500),
+                      ),
+                    ),
+                    const TextSpan(
+                      text: '.\n\nPlease purchase the base plan first to unlock this add-on.',
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Required Base Plan Preview Box
+              if (req.requiredBasePlan != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? const Color(0xFF222232)
+                        : const Color(0xFFF7F8FC),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: isDark ? Colors.white12 : Colors.grey.shade200,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: const Color(0xFFFF9500).withOpacity(0.12),
+                        ),
+                        child: const Icon(
+                          Icons.verified_rounded,
+                          color: Color(0xFFFF9500),
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              req.requiredBasePlan!.planName,
+                              style: _T.heading(
+                                14,
+                                color: isDark ? Colors.white : Colors.black87,
+                              ),
+                            ),
+                            Text(
+                              'Base Plan • ${req.requiredBasePlan!.durationDays} days',
+                              style: _T.body(
+                                11,
+                                color: isDark ? Colors.white38 : Colors.black45,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Text(
+                        '₹${_parseAmount(req.requiredBasePlan!.amount)}',
+                        style: _T.heading(
+                          16,
+                          color: const Color(0xFFFF9500),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              const SizedBox(height: 22),
+
+              // Action Buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: 48,
+                      child: TextButton(
+                        onPressed: () => Get.back(),
+                        style: TextButton.styleFrom(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        child: Text(
+                          'Dismiss',
+                          style: _T.body(
+                            14,
+                            color: isDark ? Colors.white54 : Colors.black45,
+                            fw: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: req.requiredBasePlan != null ? 2 : 1,
+                    child: SizedBox(
+                      height: 48,
+                      child: GestureDetector(
+                        onTap: () {
+                          Get.back();
+                          if (req.requiredBasePlan != null) {
+                            selectedPlanId.value = req.requiredBasePlan!.id;
+                          }
+                        },
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: _T.brandGradient,
+                            borderRadius: BorderRadius.circular(14),
+                            boxShadow: [
+                              BoxShadow(
+                                color: _T.orange.withOpacity(0.35),
+                                blurRadius: 14,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Center(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 10),
+                              child: Text(
+                                req.requiredBasePlan != null
+                                    ? 'View Base Plan'
+                                    : 'OK',
+                                textAlign: TextAlign.center,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: _T.body(
+                                  14,
+                                  color: Colors.white,
+                                  fw: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+      barrierDismissible: true,
     );
   }
 
@@ -611,6 +882,12 @@ class _SubscriptionPageState extends State<SubscriptionPage>
 
                             /// ADDON PLAN
                             if (plan.isAddon == true) {
+                              final req = controller.checkAddonPlanRequirement(plan);
+                              if (!req.isAllowed) {
+                                Get.back();
+                                _showAddonBasePlanRequiredDialog(context, plan, req);
+                                return;
+                              }
                               await controller.createOrderAndPay(plan.id);
 
                               return;
@@ -1118,6 +1395,7 @@ class _PlanCard extends StatefulWidget {
   final VoidCallback onProceed;
 
   const _PlanCard({
+    super.key,
     required this.plan,
     required this.isSelected,
     required this.isPurchased,
@@ -1174,50 +1452,52 @@ class _PlanCardState extends State<_PlanCard>
     final isSelected = widget.isSelected;
     final amount = widget.parseAmount(plan.amount);
 
-    return AnimatedBuilder(
-      animation: _scaleAnim,
-      builder: (_, child) =>
-          Transform.scale(scale: _scaleAnim.value, child: child),
-      child: GestureDetector(
-        onTap: widget.onSelect,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-          margin: const EdgeInsets.only(bottom: 16),
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF14141E) : Colors.white,
-            borderRadius: BorderRadius.circular(26),
-            border: Border.all(
-              color: isSelected
-                  ? _T.orange.withOpacity(0.7)
-                  : (isRec
-                        ? _T.purple.withOpacity(0.4)
-                        : Colors.grey.withOpacity(0.15)),
-              width: isSelected ? 2 : 1.2,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: AnimatedBuilder(
+        animation: _scaleAnim,
+        builder: (_, child) =>
+            Transform.scale(scale: _scaleAnim.value, child: child),
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: widget.onSelect,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF14141E) : Colors.white,
+              borderRadius: BorderRadius.circular(26),
+              border: Border.all(
+                color: isSelected
+                    ? _T.orange.withOpacity(0.7)
+                    : (isRec
+                          ? _T.purple.withOpacity(0.4)
+                          : Colors.grey.withOpacity(0.15)),
+                width: isSelected ? 2 : 1.2,
+              ),
+              boxShadow: [
+                if (isSelected || isRec)
+                  BoxShadow(
+                    color: isSelected
+                        ? _T.orange.withOpacity(0.25)
+                        : _T.purple.withOpacity(0.2),
+                    blurRadius: 24,
+                    spreadRadius: 2,
+                    offset: const Offset(0, 4),
+                  )
+                else
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.06),
+                    blurRadius: 12,
+                    offset: const Offset(0, 2),
+                  ),
+              ],
             ),
-            boxShadow: [
-              if (isSelected || isRec)
-                BoxShadow(
-                  color: isSelected
-                      ? _T.orange.withOpacity(0.25)
-                      : _T.purple.withOpacity(0.2),
-                  blurRadius: 24,
-                  spreadRadius: 2,
-                  offset: const Offset(0, 4),
-                )
-              else
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.06),
-                  blurRadius: 12,
-                  offset: const Offset(0, 2),
-                ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ── Card header ──────────────────────────────
-              if (isRec) _buildRecommendedBanner(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ── Card header ──────────────────────────────
+                if (isRec) _buildRecommendedBanner(),
 
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
@@ -1254,32 +1534,36 @@ class _PlanCardState extends State<_PlanCard>
                             ],
                           ),
                         ),
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 250),
-                          width: 20,
-                          height: 20,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: isSelected ? _T.brandGradient : null,
-                            color: isSelected
-                                ? null
-                                : (isDark
-                                      ? Colors.white12
-                                      : Colors.grey.shade200),
-                            border: isSelected
-                                ? null
-                                : Border.all(
-                                    color: Colors.grey.shade400,
-                                    width: 1.5,
-                                  ),
+                        GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: widget.onSelect,
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 250),
+                            width: 22,
+                            height: 22,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: isSelected ? _T.brandGradient : null,
+                              color: isSelected
+                                  ? null
+                                  : (isDark
+                                        ? Colors.white12
+                                        : Colors.grey.shade200),
+                              border: isSelected
+                                  ? null
+                                  : Border.all(
+                                      color: Colors.grey.shade400,
+                                      width: 1.5,
+                                    ),
+                            ),
+                            child: isSelected
+                                ? const Icon(
+                                    Icons.check_rounded,
+                                    size: 15,
+                                    color: Colors.white,
+                                  )
+                                : null,
                           ),
-                          child: isSelected
-                              ? const Icon(
-                                  Icons.check_rounded,
-                                  size: 15,
-                                  color: Colors.white,
-                                )
-                              : null,
                         ),
                       ],
                     ),
@@ -1391,7 +1675,11 @@ class _PlanCardState extends State<_PlanCard>
 
                     if (plan.features.length > 2)
                       GestureDetector(
-                        onTap: () => setState(() => _expanded = !_expanded),
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () {
+                          widget.onSelect();
+                          setState(() => _expanded = !_expanded);
+                        },
                         child: Row(
                           children: [
                             Text(
@@ -1484,6 +1772,7 @@ class _PlanCardState extends State<_PlanCard>
                       controller: widget.controller,
                       isDark: isDark,
                       parseAmount: widget.parseAmount,
+                      onSelect: widget.onSelect,
                     ),
 
                     const SizedBox(height: 18),
@@ -1540,6 +1829,7 @@ class _PlanCardState extends State<_PlanCard>
           ),
         ),
       ),
+    ),
     );
   }
 
@@ -1579,6 +1869,7 @@ class _CouponSection extends StatefulWidget {
   final SubscriptionController controller;
   final bool isDark;
   final int Function(String) parseAmount;
+  final VoidCallback? onSelect;
 
   const _CouponSection({
     required this.plan,
@@ -1586,6 +1877,7 @@ class _CouponSection extends StatefulWidget {
     required this.controller,
     required this.isDark,
     required this.parseAmount,
+    this.onSelect,
   });
 
   @override
@@ -1603,6 +1895,9 @@ class _CouponSectionState extends State<_CouponSection> {
     super.initState();
 
     _focusNode.addListener(() {
+      if (_focusNode.hasFocus) {
+        widget.onSelect?.call();
+      }
       if (mounted) {
         setState(() {
           _isFocused = _focusNode.hasFocus;
@@ -1660,9 +1955,12 @@ class _CouponSectionState extends State<_CouponSection> {
           ? (widget.isDark ? Colors.white70 : Colors.black54)
           : (widget.isDark ? Colors.white54 : Colors.grey);
 
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+      return GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: () => widget.onSelect?.call(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
           Row(
             children: [
               Icon(
@@ -1877,6 +2175,7 @@ class _CouponSectionState extends State<_CouponSection> {
             ),
           ],
         ],
+        ),
       );
     });
   }

@@ -936,7 +936,13 @@ class _PredictionViewState extends State<PredictionView>
           }
         }
 
+        const noSpecialtyPrompt = 'No Specialty Added (Tap + Add Specialty)';
+
         if (!courseHasSpecialties) return const SizedBox.shrink();
+
+        if (availableSpecialties.isEmpty && !specialtyItems.contains(noSpecialtyPrompt)) {
+          specialtyItems.add(noSpecialtyPrompt);
+        }
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.end,
@@ -953,6 +959,12 @@ class _PredictionViewState extends State<PredictionView>
               suffixIcon: null,
               onChanged: (v) {
                 if (v == null) return;
+                if (v == noSpecialtyPrompt || v.contains('Add Specialty')) {
+                  controller.selectedSpecialty.value = 'Select Specialty';
+                  controller.selectedSpecialtyId.value = null;
+                  _openAddSpecialty(context, subCtrl);
+                  return;
+                }
                 controller.selectedSpecialty.value = v;
 
                 final match = availableSpecialties.firstWhereOrNull((s) => s.name == v);
@@ -968,17 +980,7 @@ class _PredictionViewState extends State<PredictionView>
               isDark: isDark,
             ),
             TextButton.icon(
-              onPressed: () {
-                final activePlan = subCtrl.activePlan.value;
-                if (activePlan == null) {
-                  AppSnackbar.show(
-                    'No Active Plan',
-                    'Please purchase a base plan first to add specialties.',
-                  );
-                  return;
-                }
-                SpecialtySelectionBottomSheet.show(context);
-              },
+              onPressed: () => _openAddSpecialty(context, subCtrl),
               icon: const Icon(Icons.add_circle_outline, size: 14, color: _indigo),
               label: const Text(
                 'Add Specialty',
@@ -999,6 +1001,18 @@ class _PredictionViewState extends State<PredictionView>
       }),
     ],
   );
+
+  void _openAddSpecialty(BuildContext context, SubscriptionController subCtrl) {
+    final activePlan = subCtrl.activePlan.value;
+    if (activePlan == null) {
+      AppSnackbar.show(
+        'No Active Plan',
+        'Please purchase a base plan first to add specialties.',
+      );
+      return;
+    }
+    SpecialtySelectionBottomSheet.show(context);
+  }
 
   // ─── Reservation ──────────────────────────────────────────────────
   Widget _reservation(bool isDark) => Obx(() {

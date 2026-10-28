@@ -48,7 +48,7 @@ class SubscriptionPlan {
   factory SubscriptionPlan.fromJson(Map<String, dynamic> json) {
     final rawFeatures = json['features'];
     return SubscriptionPlan(
-      id: _asInt(json['id']),
+      id: _asInt(json['id'] ?? json['plan_id'] ?? json['subscription_plan_id']),
       planName: _asString(json['plan_name']),
       planCode: _asString(json['plan_code']),
       planType: _asString(json['plan_type']),

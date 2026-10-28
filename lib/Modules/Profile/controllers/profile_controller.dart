@@ -289,7 +289,11 @@ class ProfileController extends GetxController {
       await _syncFcmToken(result);
       await refreshRankEditAccess(forceRefreshSubscription: force);
     } catch (e) {
-      AppSnackbar.show("Profile Error", e.toString());
+      final errorStr = e.toString();
+      if (!errorStr.contains('_Map<dynamic, dynamic>') &&
+          !errorStr.contains('is not a subtype of')) {
+        AppSnackbar.show("Profile Error", errorStr);
+      }
     } finally {
       isLoading.value = false;
     }
@@ -315,7 +319,11 @@ class ProfileController extends GetxController {
       progressController.update();
       await refreshRankEditAccess(forceRefreshSubscription: force);
     } catch (e) {
-      AppSnackbar.show("Profile Error", e.toString());
+      final errorStr = e.toString();
+      if (!errorStr.contains('_Map<dynamic, dynamic>') &&
+          !errorStr.contains('is not a subtype of')) {
+        AppSnackbar.show("Profile Error", errorStr);
+      }
     }
   }
 
