@@ -605,10 +605,19 @@ class SubscriptionController extends GetxController {
         return false;
       }
 
-      final plan = plans.firstWhere((p) => p.id == planId);
+      final plan = plans.firstWhereOrNull((p) => p.id == planId);
+
+      if (plan == null && !isAddonOnly) {
+        clearPaymentProcessData();
+        AppSnackbar.show(
+          'Error',
+          'Selected plan is not available. Please choose a plan again.',
+        );
+        return false;
+      }
 
       // Addon restriction check
-      if (plan.isAddon == true && !isAddonOnly) {
+      if (plan != null && plan.isAddon == true && !isAddonOnly) {
         final addonReq = checkAddonPlanRequirement(plan);
         if (!addonReq.isAllowed) {
           clearPaymentProcessData();
@@ -622,7 +631,7 @@ class SubscriptionController extends GetxController {
 
       final preview = previewMap[planId];
 
-      int baseAmount = _parseAmount(plan.amount);
+      int baseAmount = plan != null ? _parseAmount(plan.amount) : 0;
       int finalAmount = baseAmount;
       int extraDays = 0;
       String? appliedCouponCode = preview?.couponApplied;
@@ -637,6 +646,13 @@ class SubscriptionController extends GetxController {
             courseId = course.courseId;
             break;
           }
+        }
+
+        if (courseId == 0) {
+          final profileCtrl = Get.isRegistered<ProfileController>()
+              ? Get.find<ProfileController>()
+              : null;
+          courseId = profileCtrl?.selectedCourseId.value ?? 0;
         }
 
         final activeSub = _historyController.historyList.firstWhereOrNull((h) => h.isActive);

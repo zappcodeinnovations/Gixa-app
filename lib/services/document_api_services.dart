@@ -46,27 +46,16 @@ class DocumentApiService {
   }
 
   // ✅ DELETE
-  Future<Map<String, dynamic>> deleteDocument({
+  Future<dynamic> deleteDocument({
     required int documentId,
-    required String documentType,
-    required String documentName,
+    String? documentType,
+    String? documentName,
   }) async {
-    // Create a temporary empty file to satisfy backend multipart validation
-    final tempDir = await getTemporaryDirectory();
-    final tempFile = File('${tempDir.path}/empty_delete_file.txt');
-    if (!await tempFile.exists()) {
-      await tempFile.create();
-    }
-
-    return await ApiClient.putMultipartWithFile(
-      ApiEndpoints.updateStudentDocument,
-      file: tempFile,
-      fileFieldName: 'file',
-      fields: {
-        'document_id': documentId,
-        'document_type': documentType,
-        'document_name': documentName,
-        'is_deleted': true,
+    return await ApiClient.delete(
+      ApiEndpoints.deleteStudentDocument(documentId),
+      {
+        if (documentType != null) 'document_type': documentType,
+        if (documentName != null) 'document_name': documentName,
       },
     );
   }

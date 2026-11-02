@@ -742,20 +742,30 @@ Generating your AI college prediction...
     }
 
     bool hasSpecialties = false;
-    final targetList = profileController.isPGUser
-        ? profileController.pgCourseList
-        : profileController.ugCourseList;
+    final targetList = currentAvailableCourses.isNotEmpty
+        ? currentAvailableCourses
+        : (profileController.isPGUser
+            ? profileController.pgCourseList
+            : profileController.ugCourseList);
     for (final course in targetList) {
-      if (course.name == selectedCourse.value) {
+      if (course.name.trim().toLowerCase() ==
+          selectedCourse.value.trim().toLowerCase()) {
         if (course.specialties.isNotEmpty) hasSpecialties = true;
         break;
       }
     }
 
-    if (hasSpecialties &&
-        (selectedSpecialty.value.trim().isEmpty ||
-            selectedSpecialty.value == 'Select Specialty')) {
-      AppSnackbar.show("Error", "Please select a specialty");
+    final specialtyVal = selectedSpecialty.value.trim();
+    final isInvalidSpecialty = specialtyVal.isEmpty ||
+        specialtyVal == 'Select Specialty' ||
+        specialtyVal.contains('No Specialty Added') ||
+        specialtyVal.contains('Add Specialty');
+
+    if (hasSpecialties && isInvalidSpecialty) {
+      AppSnackbar.show(
+        "Specialty Required",
+        "Please select a valid specialty for ${selectedCourse.value} before proceeding.",
+      );
       isValid = false;
     }
 

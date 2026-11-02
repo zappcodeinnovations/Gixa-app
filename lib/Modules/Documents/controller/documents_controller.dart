@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+import 'dart:io';
 import 'package:Gixa/Modules/Profile/controllers/profile_controller.dart';
 import 'package:get/get.dart';
 import 'package:file_selector/file_selector.dart';
@@ -70,9 +70,13 @@ class DocumentController extends GetxController {
       );
     } catch (e) {
       print("ERROR: $e");
+      String errorMessage = "Failed to delete document. Please try again.";
+      if (e is AppException && e.message.isNotEmpty) {
+        errorMessage = e.message;
+      }
       AppSnackbar.show(
         "Error",
-        "Failed to delete document. Please try again.",
+        errorMessage,
         snackPosition: SnackPosition.BOTTOM,
       );
     } finally {

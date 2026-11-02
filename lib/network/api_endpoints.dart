@@ -67,6 +67,8 @@ class ApiEndpoints {
   static const String documents = '/api/student/documents/upload/';
   static const updateStudentDocument = '/api/student/documents/update/';
   static const String studentDocuments = "/api/student/documents/";
+  static String deleteStudentDocument(int id) =>
+      '/api/student/delete_documents/$id/';
   static const String predictionSheets = "/api/student/prediction-sheets/";
 
   /// 💬 CHAT SUPPORT (BOT + HUMAN)

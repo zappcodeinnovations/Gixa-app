@@ -179,92 +179,92 @@ class StudentDocumentsUnifiedPage extends StatelessWidget {
 
             const SizedBox(height: 10),
 
-            Stack(
-              children: [
-                Container(
-                  height: 90,
-                  width: double.infinity,
-
-                  decoration: BoxDecoration(
-                    color: primaryColor.withOpacity(0.07),
-
-                    borderRadius: BorderRadius.circular(10),
-
-                    border: Border.all(color: primaryColor.withOpacity(0.25)),
+            GestureDetector(
+              onTap: isLocked
+                  ? () {
+                      AppSnackbar.show(
+                        "Premium Feature",
+                        "Upgrade your plan to upload this document",
+                        snackPosition: SnackPosition.BOTTOM,
+                      );
+                    }
+                  : null,
+              child: Container(
+                height: 90,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: isLocked
+                      ? (isDark
+                          ? Colors.white.withOpacity(0.04)
+                          : Colors.black.withOpacity(0.03))
+                      : primaryColor.withOpacity(0.07),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: isLocked
+                        ? (isDark
+                            ? Colors.white.withOpacity(0.12)
+                            : Colors.black.withOpacity(0.1))
+                        : primaryColor.withOpacity(0.25),
                   ),
-
-                  child: Center(
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: isLocked ? Colors.grey : primaryColor,
-
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 8,
-                        ),
-
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
+                ),
+                child: Center(
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isLocked
+                          ? (isDark ? const Color(0xFF2C2C3E) : const Color(0xFFE5E7EB))
+                          : primaryColor,
+                      foregroundColor: isLocked
+                          ? (isDark ? Colors.white70 : const Color(0xFF4B5563))
+                          : Colors.white,
+                      elevation: isLocked ? 0 : 2,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 8,
                       ),
-
-                      onPressed: isLocked || isUploading
-                          ? (isLocked
-                                ? () {
-                                    AppSnackbar.show(
-                                      "Premium Feature",
-                                      "Upgrade your plan to upload this document",
-                                      snackPosition: SnackPosition.BOTTOM,
-                                    );
-                                  }
-                                : null)
-                          : () {
-                              uploadController.uploadDocument(docType);
-                            },
-
-                      icon: isUploading
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : Icon(
-                              isLocked ? Icons.lock : Icons.upload_file,
-                              size: 18,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    onPressed: isLocked || isUploading
+                        ? (isLocked
+                            ? () {
+                                AppSnackbar.show(
+                                  "Premium Feature",
+                                  "Upgrade your plan to upload this document",
+                                  snackPosition: SnackPosition.BOTTOM,
+                                );
+                              }
+                            : null)
+                        : () {
+                            uploadController.uploadDocument(docType);
+                          },
+                    icon: isUploading
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
                             ),
-
-                      label: Text(
-                        isLocked
-                            ? "Locked"
-                            : isUploading
-                            ? "Uploading..."
-                            : "Upload Document",
-
-                        style: const TextStyle(fontSize: 12),
+                          )
+                        : Icon(
+                            isLocked ? Icons.lock_outline_rounded : Icons.upload_file,
+                            size: 18,
+                          ),
+                    label: Text(
+                      isLocked
+                          ? "Locked"
+                          : isUploading
+                          ? "Uploading..."
+                          : "Upload Document",
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: isLocked ? FontWeight.w600 : FontWeight.normal,
                       ),
                     ),
                   ),
                 ),
-
-                /// LOCK OVERLAY
-                if (isLocked)
-                  Positioned.fill(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.25),
-
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-
-                      child: const Center(
-                        child: Icon(Icons.lock, color: Colors.white, size: 28),
-                      ),
-                    ),
-                  ),
-              ],
+              ),
             ),
           ],
         );
@@ -307,16 +307,41 @@ class StudentDocumentsUnifiedPage extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: Colors.green.withOpacity(0.15),
+                color: doc.isVerified
+                    ? const Color(0xFF22C55E).withOpacity(0.18)
+                    : (doc.status?.toLowerCase() == 'pending'
+                        ? Colors.amber.withOpacity(0.18)
+                        : Colors.green.withOpacity(0.15)),
                 borderRadius: BorderRadius.circular(6),
               ),
-              child: const Text(
-                "Uploaded",
-                style: TextStyle(
-                  fontSize: 10,
-                  color: Colors.green,
-                  fontWeight: FontWeight.w600,
-                ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (doc.isVerified) ...[
+                    const Icon(
+                      Icons.verified_rounded,
+                      size: 13,
+                      color: Color(0xFF16A34A),
+                    ),
+                    const SizedBox(width: 4),
+                  ],
+                  Text(
+                    doc.isVerified
+                        ? "Verified"
+                        : (doc.status?.toLowerCase() == 'pending'
+                            ? "Pending Review"
+                            : "Uploaded"),
+                    style: TextStyle(
+                      fontSize: 10.5,
+                      color: doc.isVerified
+                          ? const Color(0xFF16A34A)
+                          : (doc.status?.toLowerCase() == 'pending'
+                              ? Colors.amber.shade800
+                              : Colors.green),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],

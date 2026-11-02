@@ -73,11 +73,13 @@ void main() async {
   // (navigator is already ready, so we can navigate directly)
   FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
     final route = NotificationLaunchService.resolveRouteFromData(message.data);
+    final type = message.data['type'] as String? ?? '';
     try {
       Get.toNamed(route);
+      NotificationLaunchService.executePostNotificationAction(type, message.data);
     } catch (_) {
       // Navigator may not be ready in rare edge cases; store as pending
-      NotificationLaunchService.setPendingRoute(route);
+      NotificationLaunchService.setPendingRoute(route, type: type);
     }
   });
 
@@ -87,7 +89,8 @@ void main() async {
   FirebaseMessaging.instance.getInitialMessage().then((message) {
     if (message != null) {
       final route = NotificationLaunchService.resolveRouteFromData(message.data);
-      NotificationLaunchService.setPendingRoute(route);
+      final type = message.data['type'] as String? ?? '';
+      NotificationLaunchService.setPendingRoute(route, type: type);
     }
   });
 }

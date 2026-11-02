@@ -104,15 +104,35 @@ class NotificationService {
       if (Get.key.currentState != null) {
         Get.toNamed(targetRoute);
       } else {
-        NotificationLaunchService.setPendingRoute(targetRoute);
+        NotificationLaunchService.setPendingRoute(targetRoute, type: payload);
       }
     } catch (_) {
-      NotificationLaunchService.setPendingRoute(targetRoute);
+      NotificationLaunchService.setPendingRoute(targetRoute, type: payload);
     }
+
+    // Trigger action / refresh
+    NotificationLaunchService.executePostNotificationAction(payload);
   }
 
   static String _resolveTargetRoute(String payload) {
     final lowerPayload = payload.toLowerCase();
+
+    // 1. Document Verified / Unverified -> My Documents
+    if (lowerPayload.contains('document_verified') ||
+        lowerPayload.contains('document_unverified') ||
+        lowerPayload.contains('document-verified') ||
+        lowerPayload.contains('document-unverified') ||
+        lowerPayload == AppRoutes.updateDocs) {
+      return AppRoutes.updateDocs;
+    }
+
+    // 2. Application Status Update -> Counseling Roadmap
+    if (lowerPayload.contains('application_status_update') ||
+        lowerPayload.contains('application-status') ||
+        lowerPayload.contains('in counseling') ||
+        lowerPayload.contains('in_counseling')) {
+      return AppRoutes.choiceFilling;
+    }
 
     if (lowerPayload.contains('alert') || lowerPayload == AppRoutes.alerts) {
       return AppRoutes.alerts;
