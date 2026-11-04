@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:get/get.dart';
 import '../model/counselling_state_model.dart';
 import '../widgets/shared_widgets.dart';
@@ -19,6 +20,9 @@ import '../widgets/detailed_reservation_view.dart';
 import '../widgets/detailed_cap_fees_view.dart';
 import '../widgets/detailed_alerts_ref_view.dart';
 import '../widgets/addon_contact_banner.dart';
+import '../widgets/important_dates_view.dart';
+import '../widgets/visual_timeline_view.dart';
+import 'package:Gixa/routes/app_routes.dart';
 import 'package:Gixa/Modules/addon_contact/controller/addon_contact_controller.dart';
 import 'package:Gixa/Modules/subscription/controller/subsciption_history_controller.dart';
 import 'package:Gixa/Modules/choice_filling/controller/predication_sheet_controller.dart';
@@ -85,7 +89,7 @@ class CounsellingRoadmapScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: scaffoldBg,
-      appBar: _buildAppBar(isDark, textColor, borderColor, appBarBg),
+      appBar: _buildAppBar(context, isDark, textColor, borderColor, appBarBg),
       body: SafeArea(
         top: false,
         child: Obx(() {
@@ -142,6 +146,7 @@ class CounsellingRoadmapScreen extends StatelessWidget {
   }
 
   PreferredSizeWidget _buildAppBar(
+    BuildContext context,
     bool isDark,
     Color textColor,
     Color borderColor,
@@ -154,13 +159,19 @@ class CounsellingRoadmapScreen extends StatelessWidget {
       surfaceTintColor: appBarBg,
       foregroundColor: textColor,
       centerTitle: true,
-      leadingWidth: 56,
-      leading: Padding(
-        padding: const EdgeInsets.only(left: 12),
-        child: InkWell(
-          onTap: () => Get.back(),
-          borderRadius: BorderRadius.circular(12),
+      leading: IconButton(
+        icon: Icon(
+          Icons.arrow_back_ios_new_rounded,
+          size: 18,
+          color: textColor,
         ),
+        onPressed: () {
+          if (Navigator.canPop(context)) {
+            Navigator.pop(context);
+          } else {
+            Get.back();
+          }
+        },
       ),
       title: Row(
         mainAxisSize: MainAxisSize.min,
@@ -949,6 +960,10 @@ class _ScheduleSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // ── VISUAL ROADMAP & DATES QUICK-LAUNCH BANNER ──────────────
+        _buildTimelineBanners(context, isDark, borderColor),
+        const SizedBox(height: 24),
+
         // ── INTRO CARDS ─────────────────────────────────────────────
         if (state.introCards.isNotEmpty) ...[
           IntroSlider(
@@ -956,8 +971,84 @@ class _ScheduleSection extends StatelessWidget {
             isDark: isDark,
             borderColor: borderColor,
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 28),
         ],
+
+        // ── ET-166: VISUAL COUNSELLING ROADMAP (STEPPER) ───────────
+        Row(
+          children: [
+            const Expanded(
+              child: SectionHeader(
+                icon: Icons.timeline_rounded,
+                title: "Visual Counselling Roadmap",
+              ),
+            ),
+            const SizedBox(width: 8),
+            InkWell(
+              onTap: () => Get.toNamed(AppRoutes.counsellingTimeline),
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.fullscreen_rounded, size: 16, color: GixaColors.orange),
+                    const SizedBox(width: 4),
+                    Text(
+                      "Full View",
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: GixaColors.orange,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        VisualTimelineView(isDark: isDark),
+        const SizedBox(height: 32),
+
+        // ── ET-165: IMPORTANT COUNSELLING DATES ─────────────────────
+        Row(
+          children: [
+            const Expanded(
+              child: SectionHeader(
+                icon: Icons.calendar_month_rounded,
+                title: "Important Counselling Dates",
+              ),
+            ),
+            const SizedBox(width: 8),
+            InkWell(
+              onTap: () => Get.toNamed(AppRoutes.importantDates),
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.fullscreen_rounded, size: 16, color: GixaColors.orange),
+                    const SizedBox(width: 4),
+                    Text(
+                      "Full View",
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: GixaColors.orange,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        ImportantDatesView(isDark: isDark),
+        const SizedBox(height: 32),
 
         // ── PROCESS ROUNDS (Horizontal Timeline) ────────────────────
         if (state.processRounds.isNotEmpty) ...[
@@ -1066,6 +1157,141 @@ class _ScheduleSection extends StatelessWidget {
           const SizedBox(height: 22),
         ],
       ],
+    );
+  }
+
+  Widget _buildTimelineBanners(BuildContext context, bool isDark, Color borderColor) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1A1A28) : Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: borderColor),
+        boxShadow: CounsellingUi.cardShadow(isDark),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: GixaColors.orange.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.flash_on_rounded, size: 16, color: GixaColors.orange),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                "Live Counselling Tracker",
+                style: GoogleFonts.dmSans(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : const Color(0xFF111827),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: InkWell(
+                  onTap: () => Get.toNamed(AppRoutes.counsellingTimeline),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          GixaColors.orange.withOpacity(isDark ? 0.25 : 0.12),
+                          GixaColors.pinkLight.withOpacity(isDark ? 0.2 : 0.08),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: GixaColors.orange.withOpacity(0.35)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.timeline_rounded, size: 16, color: GixaColors.orange),
+                            const Spacer(),
+                            Icon(Icons.arrow_forward_ios_rounded, size: 11, color: GixaColors.orange),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          "Visual Roadmap",
+                          style: GoogleFonts.dmSans(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : const Color(0xFF111827),
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          "Step 1 ➔ Step 5",
+                          style: GoogleFonts.dmSans(
+                            fontSize: 11,
+                            color: isDark ? Colors.white60 : const Color(0xFF6B7280),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: InkWell(
+                  onTap: () => Get.toNamed(AppRoutes.importantDates),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF222232) : const Color(0xFFF3F4F6),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: borderColor),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.calendar_month_rounded, size: 16, color: GixaColors.blue),
+                            const Spacer(),
+                            Icon(Icons.arrow_forward_ios_rounded, size: 11, color: GixaColors.blue),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          "Important Dates",
+                          style: GoogleFonts.dmSans(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : const Color(0xFF111827),
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          "Sync with Calendar",
+                          style: GoogleFonts.dmSans(
+                            fontSize: 11,
+                            color: isDark ? Colors.white60 : const Color(0xFF6B7280),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

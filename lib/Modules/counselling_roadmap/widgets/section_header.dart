@@ -15,6 +15,7 @@ class SectionHeader extends StatelessWidget {
     final textColor = CounsellingUi.textPrimary(isDark);
 
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Container(
           width: 30,
@@ -30,12 +31,16 @@ class SectionHeader extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 10),
-        Text(
-          title,
-          style: TextStyle(
-            fontWeight: FontWeight.w800,
-            fontSize: 15,
-            color: textColor,
+        Flexible(
+          child: Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontWeight: FontWeight.w800,
+              fontSize: 15,
+              color: textColor,
+            ),
           ),
         ),
       ],

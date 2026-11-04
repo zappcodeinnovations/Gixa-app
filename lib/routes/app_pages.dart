@@ -14,6 +14,7 @@ import 'package:Gixa/Modules/comparison/view/compare_history_save.dart';
 import 'package:Gixa/Modules/favourite/view/favourite_colleges_page.dart';
 import 'package:Gixa/Modules/predication/view/predication_view.dart';
 import 'package:Gixa/Modules/counselling_roadmap/view/counselling_roadmap_screen.dart';
+import 'package:Gixa/Modules/counselling_roadmap/view/counselling_timeline_page.dart';
 import 'package:Gixa/Modules/register/view/register_page.dart';
 import 'package:Gixa/Modules/settings/view/about_page.dart';
 import 'package:Gixa/Modules/settings/view/data_storage_page.dart';
@@ -189,5 +190,13 @@ class AppPages {
       page: () => CounsellingRoadmapScreen(),
     ),
     GetPage(name: AppRoutes.ticket, page: () => CreateTicketView()),
+    GetPage(
+      name: AppRoutes.counsellingTimeline,
+      page: () => const CounsellingTimelinePage(initialTabIndex: 0),
+    ),
+    GetPage(
+      name: AppRoutes.importantDates,
+      page: () => const CounsellingTimelinePage(initialTabIndex: 1),
+    ),
   ];
 }

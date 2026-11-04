@@ -70,6 +70,7 @@ class ApiEndpoints {
   static String deleteStudentDocument(int id) =>
       '/api/student/delete_documents/$id/';
   static const String predictionSheets = "/api/student/prediction-sheets/";
+  static const String counsellingTimeline = "/api/counselling/timeline/";
 
   /// 💬 CHAT SUPPORT (BOT + HUMAN)
   static const String chatStart = '/api/chat/start/';

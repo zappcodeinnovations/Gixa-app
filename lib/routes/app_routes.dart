@@ -36,4 +36,6 @@ abstract class AppRoutes {
   static const choiceFilling = '/choice-filling';
   static const ticket = '/ticket';
   static const admissionChat = '/admission-chat';
+  static const counsellingTimeline = '/counselling-timeline';
+  static const importantDates = '/important-dates';
 }

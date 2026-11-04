@@ -975,9 +975,10 @@ Generating your AI college prediction...
   }
 
   void setSelectedRound(String value) {
-    final round = roundsList.firstWhere((e) => e.roundName == value);
-
-    selectedRound.value = round.roundName;
-    selectedRoundId.value = round.id; // ðŸ”¥ important
+    final round = roundsList.firstWhereOrNull((e) => e.roundName == value);
+    if (round != null) {
+      selectedRound.value = round.roundName;
+      selectedRoundId.value = round.id; // 🔥 important
+    }
   }
 }
